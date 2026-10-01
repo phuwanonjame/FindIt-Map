@@ -1,8 +1,16 @@
 {
-  "name": "FindMe",
-  "short_name": "FindMe",
+  "name": "FindIt Map",
+  "short_name": "FindIt",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0f766e"
+  "theme_color": "#10213d",
+  "icons": [
+    {
+      "src": "/findit-logo.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

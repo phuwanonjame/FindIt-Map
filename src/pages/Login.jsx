@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail, MapPinned } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail } from "lucide-react";
 import { base44 as appClient } from "@/api/supabaseAdapter";
 import GoogleIcon from "@/components/GoogleIcon";
 
@@ -36,7 +36,7 @@ export default function Login() {
         <div className="absolute -left-20 top-20 h-80 w-80 rounded-full bg-blue-500/25 blur-3xl" />
         <div className="absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
         <Link to="/" className="relative inline-flex items-center gap-3 self-start font-bold tracking-tight">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-300 text-[#10213d]"><MapPinned className="h-5 w-5" /></span>
+          <img src="/findit-logo.png" alt="FindIt Map" className="h-10 w-10 rounded-xl object-cover" />
           FindIt Map
         </Link>
         <div className="relative my-auto max-w-xl">
@@ -49,7 +49,7 @@ export default function Login() {
       <main className="flex min-h-[100dvh] items-center justify-center bg-white px-5 py-10 sm:px-10">
         <section className="w-full max-w-[400px]">
           <Link to="/" className="mb-12 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"><ArrowLeft className="h-4 w-4" /> กลับสู่หน้าแรก</Link>
-          <div className="mb-8 lg:hidden"><div className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-[#10213d] text-cyan-300"><MapPinned className="h-5 w-5" /></div><p className="font-bold tracking-tight">FindIt Map</p></div>
+          <div className="mb-8 lg:hidden"><img src="/findit-logo.png" alt="FindIt Map" className="mb-5 h-11 w-11 rounded-xl object-cover" /><p className="font-bold tracking-tight">FindIt Map</p></div>
           <div className="mb-8"><h2 className="text-3xl font-bold tracking-tight">เข้าสู่ระบบ</h2><p className="mt-2 text-sm leading-6 text-slate-500">เข้าสู่ระบบเพื่อแจ้งประกาศและติดตามสิ่งที่คุณกำลังตามหา</p></div>
           {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
           <form onSubmit={signIn} className="space-y-5">

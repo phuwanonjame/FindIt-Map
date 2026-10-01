@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Map as MapIcon, MapPin, Search, Plus, MessageSquare, User, Bell, Menu, X, LogIn } from "lucide-react";
+import { Map as MapIcon, Search, Plus, MessageSquare, User, Bell, Menu, X, LogIn } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +23,7 @@ export default function Layout() {
       <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
+            <img src="/findit-logo.png" alt="FindIt Map" className="h-8 w-8 rounded-lg object-cover" />
             <span className="font-bold text-[15px] tracking-tight">FindIt Map</span>
           </Link>
 
