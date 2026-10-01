@@ -10,4 +10,3 @@ export default defineConfig({
     react(),
   ]
 });
-import path from "path";
