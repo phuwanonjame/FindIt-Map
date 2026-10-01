@@ -275,7 +275,14 @@ export default function Home() {
           {loading ? (
             <div className="w-full h-full bg-accent animate-pulse" />
           ) : (
-            <MapView posts={filtered} center={mapCenter} userPosition={userPos} onSelect={(p) => navigate(`/post/${p.id}`)} height="100%" />
+            <MapView
+              posts={filtered}
+              center={mapCenter}
+              focusedPlace={placeFocus ? { position: placeFocus, label: selectedPlaceLabel } : null}
+              userPosition={userPos}
+              onSelect={(p) => navigate(`/post/${p.id}`)}
+              height="100%"
+            />
           )}
           {selectedPost && (
             <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-80 bg-card rounded-xl border border-border shadow-lg p-3 animate-fade-in">

@@ -75,7 +75,28 @@ function FitPostMarkers({ posts, skip }) {
   return null;
 }
 
-export default function MapView({ posts = [], center, focusZoom, userPosition, onSelect, selectedId, height = "100%", interactive = true }) {
+function PlaceFocusMarker({ place }) {
+  const markerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    markerRef.current?.openPopup();
+  }, [place]);
+
+  if (!place) return null;
+
+  return (
+    <Marker ref={markerRef} position={place.position} icon={pinIcon("#2563EB")} zIndexOffset={2000}>
+      <Popup autoPan>
+        <div style={{ minWidth: 180 }}>
+          <div style={{ fontSize: 12, color: "#2563EB", fontWeight: 700, marginBottom: 4 }}>สถานที่ที่ค้นหา</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{place.label}</div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+export default function MapView({ posts = [], center, focusZoom, focusedPlace, userPosition, onSelect, selectedId, height = "100%", interactive = true }) {
   const markers = posts.filter((p) => Number.isFinite(Number(p.public_latitude ?? p.latitude)) && Number.isFinite(Number(p.public_longitude ?? p.longitude)));
 
   return (
@@ -94,6 +115,7 @@ export default function MapView({ posts = [], center, focusZoom, userPosition, o
       />
       <Recenter center={center} zoom={focusZoom} />
       <FitPostMarkers posts={markers} skip={Boolean(center)} />
+      <PlaceFocusMarker place={focusedPlace} />
       {userPosition && (
         <>
           <Circle center={userPosition} radius={Math.max(userPosition[2] || 0, 20)} pathOptions={{ color: "#2563EB", fillColor: "#60A5FA", fillOpacity: 0.12, weight: 1 }} />
