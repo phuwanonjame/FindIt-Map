@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import RegisterNew from "./RegisterNew";
 import { Link } from "react-router-dom";
 import { base44 as appClient } from "@/api/supabaseAdapter";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
