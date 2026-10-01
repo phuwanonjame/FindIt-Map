@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 40% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 40% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 40% 13%;
+    --primary: 221 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 40% 13%;
+    --muted: 215 16% 47%;
+    --muted-foreground: 215 14% 49%;
+    --accent: 210 20% 94%;
+    --accent-foreground: 222 40% 13%;
+    --destructive: 0 62% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --lost: 0 64% 47%;
+    --found: 152 54% 38%;
+    --warning: 36 78% 43%;
+    --border: 214 20% 89%;
+    --input: 214 20% 89%;
+    --ring: 221 70% 45%;
+    --radius: 0.5rem;
+    --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .dark {
+    --background: 222 40% 11%;
+    --foreground: 210 20% 96%;
+    --card: 222 40% 13%;
+    --card-foreground: 210 20% 96%;
+    --popover: 222 40% 13%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 221 70% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 26% 18%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 215 18% 60%;
+    --muted-foreground: 215 18% 62%;
+    --accent: 217 26% 18%;
+    --accent-foreground: 210 20% 96%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --lost: 0 64% 54%;
+    --found: 152 54% 48%;
+    --warning: 36 78% 52%;
+    --border: 217 26% 20%;
+    --input: 217 26% 20%;
+    --ring: 221 70% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .map-shadow { box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06); }
+}
+
+/* React Leaflet needs explicit dimensions; without them tiles can be clipped
+   while a parent card, dialog, or mobile layout is settling. */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}

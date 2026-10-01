@@ -1,0 +1,8 @@
+{
+  "name": "FindMe",
+  "short_name": "FindMe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e"
+}
