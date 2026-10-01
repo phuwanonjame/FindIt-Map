@@ -55,6 +55,7 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
   const [userPos, setUserPos] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle");
   const [selectedPost, setSelectedPost] = useState(null);
   const [stats, setStats] = useState({ lostToday: 0, foundToday: 0, returned: 0, nearMe: 0 });
 
@@ -94,14 +95,26 @@ export default function Home() {
   }, [posts, filtered, userPos]);
 
   const requestLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setLocationStatus("unsupported");
+      return;
+    }
+    setLocationStatus("requesting");
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
-      () => {}
+      (pos) => {
+        setUserPos([pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy]);
+        setLocationStatus("granted");
+      },
+      () => setLocationStatus("denied"),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
 
-  const mapCenter = userPos || [13.7563, 100.5018];
+  // The browser displays its native consent prompt. Declining does not block
+  // the public map or any other functionality.
+  useEffect(() => {
+    requestLocation();
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col">
@@ -121,8 +134,8 @@ export default function Home() {
             <button onClick={() => setShowFilters(!showFilters)} className={cn("px-3.5 rounded-lg border text-sm font-medium flex items-center gap-1.5 transition", showFilters ? "bg-primary text-white border-primary" : "bg-card border-border hover:bg-accent")}>
               <SlidersHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">ตัวกรอง</span>
             </button>
-            <button onClick={requestLocation} className="px-3.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-sm font-medium flex items-center gap-1.5 hover:bg-primary/15 transition">
-              <Navigation className="w-4 h-4" /> <span className="hidden sm:inline">ใกล้ฉัน</span>
+            <button onClick={requestLocation} className="px-3.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-sm font-medium flex items-center gap-1.5 hover:bg-primary/15 transition" aria-label="ใช้ตำแหน่งปัจจุบัน">
+              <Navigation className={cn("w-4 h-4", locationStatus === "requesting" && "animate-pulse")} /> <span className="hidden sm:inline">ใกล้ฉัน</span>
             </button>
           </div>
 
@@ -191,7 +204,7 @@ export default function Home() {
           {loading ? (
             <div className="w-full h-full bg-accent animate-pulse" />
           ) : (
-            <MapView posts={filtered} center={mapCenter} onSelect={(p) => navigate(`/post/${p.id}`)} height="100%" />
+            <MapView posts={filtered} center={userPos?.slice(0, 2)} userPosition={userPos} onSelect={(p) => navigate(`/post/${p.id}`)} height="100%" />
           )}
           {selectedPost && (
             <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-80 bg-card rounded-xl border border-border shadow-lg p-3 animate-fade-in">

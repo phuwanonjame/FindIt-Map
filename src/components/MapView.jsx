@@ -1,5 +1,5 @@
 import React from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CATEGORY_MAP, getStatusInfo, timeAgo } from "@/lib/constants";
@@ -10,7 +10,7 @@ import { CATEGORY_MAP, getStatusInfo, timeAgo } from "@/lib/constants";
 function MapSizeSync() {
   const map = useMap();
 
-  useEffect(() => {
+  React.useEffect(() => {
     const refresh = () => map.invalidateSize({ animate: false });
     const frame = requestAnimationFrame(refresh);
     const timer = window.setTimeout(refresh, 150);
@@ -56,10 +56,11 @@ function Recenter({ center }) {
   return null;
 }
 
-function FitPostMarkers({ posts }) {
+function FitPostMarkers({ posts, skip }) {
   const map = useMap();
 
   React.useEffect(() => {
+    if (skip) return;
     const points = posts
       .map((post) => [Number(post.public_latitude ?? post.latitude), Number(post.public_longitude ?? post.longitude)])
       .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
@@ -69,12 +70,12 @@ function FitPostMarkers({ posts }) {
     } else if (points.length > 1) {
       map.fitBounds(points, { padding: [36, 36], maxZoom: 15 });
     }
-  }, [map, posts]);
+  }, [map, posts, skip]);
 
   return null;
 }
 
-export default function MapView({ posts = [], center, onSelect, selectedId, height = "100%", interactive = true }) {
+export default function MapView({ posts = [], center, userPosition, onSelect, selectedId, height = "100%", interactive = true }) {
   const markers = posts.filter((p) => Number.isFinite(Number(p.public_latitude ?? p.latitude)) && Number.isFinite(Number(p.public_longitude ?? p.longitude)));
 
   return (
@@ -84,14 +85,23 @@ export default function MapView({ posts = [], center, onSelect, selectedId, heig
       style={{ height, width: "100%", zIndex: 0 }}
       scrollWheelZoom={interactive}
       zoomControl={interactive}
+      preferCanvas
     >
       <MapSizeSync />
       <TileLayer
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-        attribution='Tiles &copy; Esri'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>'
       />
       <Recenter center={center} />
-      <FitPostMarkers posts={markers} />
+      <FitPostMarkers posts={markers} skip={Boolean(center)} />
+      {userPosition && (
+        <>
+          <Circle center={userPosition} radius={Math.max(userPosition[2] || 0, 20)} pathOptions={{ color: "#2563EB", fillColor: "#60A5FA", fillOpacity: 0.12, weight: 1 }} />
+          <CircleMarker center={userPosition} radius={8} pathOptions={{ color: "#FFFFFF", fillColor: "#2563EB", fillOpacity: 1, weight: 3 }}>
+            <Popup>ตำแหน่งของคุณ</Popup>
+          </CircleMarker>
+        </>
+      )}
       {markers.map((p) => {
         const isReturned = p.status === "RETURNED" || p.status === "CLOSED";
         const color = isReturned ? COLORS.RETURNED : p.post_type === "LOST" ? COLORS.LOST : COLORS.FOUND;
