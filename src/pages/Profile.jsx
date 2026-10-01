@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Star, Award, LogOut, Settings, ChevronRight, Bookmark } from "lucide-react";
+import { Star, Award, LogOut, Settings, ChevronRight, Bookmark, ClipboardList } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import StatusBadge, { TypeBadge } from "@/components/StatusBadge";
 import { CATEGORY_MAP, timeAgo } from "@/lib/constants";
+import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -78,7 +79,7 @@ export default function Profile() {
 
       {/* List */}
       {loading ? <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-card rounded-2xl border border-border animate-pulse" />)}</div> : display.length === 0 ? (
-        <div className="text-center py-12"><div className="text-4xl mb-2">{tab === "saved" ? "🔖" : "📋"}</div><p className="text-sm text-muted-foreground">{tab === "saved" ? "ยังไม่มีประกาศที่บันทึก" : "ยังไม่มีประกาศ"}</p></div>
+        <div className="text-center py-12">{tab === "saved" ? <Bookmark className="mx-auto mb-2 h-10 w-10 text-muted-foreground" /> : <ClipboardList className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />}<p className="text-sm text-muted-foreground">{tab === "saved" ? "ยังไม่มีประกาศที่บันทึก" : "ยังไม่มีประกาศ"}</p></div>
       ) : (
         <div className="space-y-2">
           {display.map((p) => {
@@ -86,7 +87,7 @@ export default function Profile() {
             return (
               <Link key={p.id} to={`/post/${p.id}`} className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-accent transition">
                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-accent shrink-0">
-                  {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">{c ? { phone: "📱", wallet: "👛", bag: "👜", key: "🔑", document: "📄", card: "💳", pet: "🐾", jewelry: "💍", electronics: "💻", other: "📦" }[c.id] : "📦"}</div>}
+                  {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><CategoryIcon id={c?.id} className="h-6 w-6 text-muted-foreground" /></div>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5"><TypeBadge type={p.post_type} /></div>

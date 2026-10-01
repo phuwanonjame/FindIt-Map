@@ -124,7 +124,7 @@ export default function PostDetail() {
     try {
       await base44.entities.Post.update(id, { status: "RETURNED", returned_at: new Date().toISOString(), closed_at: new Date().toISOString() });
       await base44.entities.PostEvent.create({ post_id: id, event_type: "RETURNED", user_id: user.id, user_name: user.full_name, description: "ส่งคืนสำเร็จ" });
-      toast.success("ยืนยันส่งคืนสำเร็จ! 🎉");
+      toast.success("ยืนยันส่งคืนสำเร็จ");
       load();
     } catch { toast.error("ยืนยันไม่สำเร็จ"); }
   };

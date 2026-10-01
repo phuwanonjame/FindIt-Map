@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle, CircleDot } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { CATEGORIES, CATEGORY_MAP, LOCATION_PRIVACY, HOLDER_TYPES, BANGKOK_CENTER } from "@/lib/constants";
@@ -176,13 +176,13 @@ export default function CreatePost() {
         <p className="text-sm text-muted-foreground mb-6">เลือกประเภทประกาศที่ต้องการสร้าง</p>
         <div className="grid md:grid-cols-2 gap-4">
           <button onClick={() => setPostType("LOST")} className="text-left p-6 rounded-3xl border-2 border-border hover:border-lost hover:shadow-lg transition group bg-card">
-            <div className="w-14 h-14 rounded-2xl bg-lost/10 flex items-center justify-center mb-4 text-3xl">🔴</div>
+            <div className="w-14 h-14 rounded-2xl bg-lost/10 flex items-center justify-center mb-4"><CircleDot className="h-7 w-7 text-lost" /></div>
             <h2 className="text-xl font-bold mb-1">ของหาย</h2>
             <p className="text-sm text-muted-foreground mb-4">ฉันทำของหายและกำลังตามหา</p>
             <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lost text-white text-sm font-semibold group-hover:gap-2.5 transition-all">แจ้งของหาย <ChevronRight className="w-4 h-4" /></span>
           </button>
           <button onClick={() => setPostType("FOUND")} className="text-left p-6 rounded-3xl border-2 border-border hover:border-found hover:shadow-lg transition group bg-card">
-            <div className="w-14 h-14 rounded-2xl bg-found/10 flex items-center justify-center mb-4 text-3xl">🟢</div>
+            <div className="w-14 h-14 rounded-2xl bg-found/10 flex items-center justify-center mb-4"><CircleDot className="h-7 w-7 text-found" /></div>
             <h2 className="text-xl font-bold mb-1">พบของ</h2>
             <p className="text-sm text-muted-foreground mb-4">ฉันพบของและต้องการตามหาเจ้าของ</p>
             <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-found text-white text-sm font-semibold group-hover:gap-2.5 transition-all">แจ้งพบของ <ChevronRight className="w-4 h-4" /></span>

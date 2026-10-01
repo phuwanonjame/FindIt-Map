@@ -28,7 +28,7 @@ export default function Messages() {
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 bg-card rounded-2xl border border-border animate-pulse" />)}</div>
       ) : convs.length === 0 ? (
-        <div className="text-center py-16"><div className="text-5xl mb-3">💬</div><p className="text-muted-foreground">ยังไม่มีข้อความ</p></div>
+        <div className="text-center py-16"><MessageSquare className="mx-auto mb-3 h-12 w-12 text-muted-foreground" /><p className="text-muted-foreground">ยังไม่มีข้อความ</p></div>
       ) : (
         <div className="space-y-2">
           {convs.map((c) => (

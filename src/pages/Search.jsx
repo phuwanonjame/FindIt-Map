@@ -59,7 +59,7 @@ export default function Search() {
       ) : loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="bg-card rounded-2xl border border-border animate-pulse aspect-[3/4]" />)}</div>
       ) : results.length === 0 ? (
-        <div className="text-center py-16"><div className="text-5xl mb-3">🔍</div><p className="text-muted-foreground">ไม่พบผลลัพธ์</p></div>
+        <div className="text-center py-16"><SearchIcon className="mx-auto mb-3 h-12 w-12 text-muted-foreground" /><p className="text-muted-foreground">ไม่พบผลลัพธ์</p></div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">{results.map((p) => <PostCard key={p.id} post={p} />)}</div>
       )}

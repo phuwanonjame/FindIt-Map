@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Flag, Users, BarChart3, Check, X, Trash2 } from "lucide-react";
+import { Shield, Flag, Users, BarChart3, Check, X, Trash2, Package } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { CATEGORY_MAP, getStatusInfo } from "@/lib/constants";
@@ -95,7 +95,7 @@ export default function Admin() {
             const c = CATEGORY_MAP[p.category];
             return (
               <div key={p.id} className="flex gap-3 p-3 rounded-2xl bg-card border border-border">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-accent shrink-0">{p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl">📦</div>}</div>
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-accent shrink-0">{p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>}</div>
                 <div className="flex-1 min-w-0">
                   <Link to={`/post/${p.id}`} className="font-semibold text-sm hover:text-primary">{p.title}</Link>
                   <div className="text-xs text-muted-foreground">{c?.name} · {p.post_type === "LOST" ? "ของหาย" : "พบของ"} · {getStatusInfo(p.status, p.post_type).label}</div>
