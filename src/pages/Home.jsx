@@ -31,6 +31,8 @@ const DISTANCE_FILTERS = [
   { value: 10000, label: "10 กม." },
 ];
 
+const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
+
 function SkeletonCard() {
   return (
     <div className="bg-card rounded-xl overflow-hidden border border-border animate-pulse">
@@ -54,6 +56,10 @@ export default function Home() {
   const [distanceFilter, setDistanceFilter] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeSuggestions, setPlaceSuggestions] = useState([]);
+  const [placeLoading, setPlaceLoading] = useState(false);
+  const [placeFocus, setPlaceFocus] = useState(null);
   const [userPos, setUserPos] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
   const [selectedPost, setSelectedPost] = useState(null);
@@ -65,6 +71,42 @@ export default function Home() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const query = placeQuery.trim();
+    if (!GEOAPIFY_KEY || query.length < 3) {
+      setPlaceSuggestions([]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setPlaceLoading(true);
+      try {
+        const params = new URLSearchParams({
+          text: query,
+          format: "json",
+          limit: "5",
+          filter: "countrycode:th",
+          apiKey: GEOAPIFY_KEY,
+        });
+        if (userPos) params.set("bias", `proximity:${userPos[1]},${userPos[0]}`);
+        const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?${params}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Place search failed");
+        const data = await response.json();
+        setPlaceSuggestions(data.results || []);
+      } catch (error) {
+        if (error.name !== "AbortError") setPlaceSuggestions([]);
+      } finally {
+        if (!controller.signal.aborted) setPlaceLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [placeQuery, userPos]);
 
   const filtered = useMemo(() => {
     let result = posts;
@@ -103,6 +145,7 @@ export default function Home() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserPos([pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy]);
+        setPlaceFocus(null);
         setLocationStatus("granted");
       },
       () => setLocationStatus("denied"),
@@ -115,6 +158,11 @@ export default function Home() {
   useEffect(() => {
     requestLocation();
   }, []);
+
+  const mapCenter = useMemo(
+    () => placeFocus || userPos?.slice(0, 2),
+    [placeFocus, userPos]
+  );
 
   return (
     <div className="flex-1 flex flex-col">
@@ -137,6 +185,38 @@ export default function Home() {
             <button onClick={requestLocation} className="px-3.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-sm font-medium flex items-center gap-1.5 hover:bg-primary/15 transition" aria-label="ใช้ตำแหน่งปัจจุบัน">
               <Navigation className={cn("w-4 h-4", locationStatus === "requesting" && "animate-pulse")} /> <span className="hidden sm:inline">ใกล้ฉัน</span>
             </button>
+          </div>
+
+          <div className="relative mt-2">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-primary" />
+            <input
+              value={placeQuery}
+              onChange={(event) => setPlaceQuery(event.target.value)}
+              placeholder="ค้นหาสถานที่ เช่น มหาวิทยาลัยเชียงใหม่, สยามพารากอน"
+              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              autoComplete="off"
+            />
+            {placeLoading && <div className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />}
+            {placeSuggestions.length > 0 && (
+              <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-xl">
+                {placeSuggestions.map((place) => (
+                  <button
+                    key={`${place.place_id}-${place.lon}-${place.lat}`}
+                    type="button"
+                    onClick={() => {
+                      setPlaceQuery(place.formatted);
+                      setPlaceFocus([Number(place.lat), Number(place.lon)]);
+                      setPlaceSuggestions([]);
+                    }}
+                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-accent"
+                  >
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span className="line-clamp-2">{place.formatted}</span>
+                  </button>
+                ))}
+                <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">สถานที่โดย Geoapify © OpenStreetMap contributors</div>
+              </div>
+            )}
           </div>
 
           {showFilters && (
@@ -204,7 +284,7 @@ export default function Home() {
           {loading ? (
             <div className="w-full h-full bg-accent animate-pulse" />
           ) : (
-            <MapView posts={filtered} center={userPos?.slice(0, 2)} userPosition={userPos} onSelect={(p) => navigate(`/post/${p.id}`)} height="100%" />
+            <MapView posts={filtered} center={mapCenter} userPosition={userPos} onSelect={(p) => navigate(`/post/${p.id}`)} height="100%" />
           )}
           {selectedPost && (
             <div className="absolute bottom-4 left-4 right-4 md:right-auto md:w-80 bg-card rounded-xl border border-border shadow-lg p-3 animate-fade-in">
