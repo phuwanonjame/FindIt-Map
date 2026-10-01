@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Star, Award, LogOut, Settings, ChevronRight, Bookmark, ClipboardList } from "lucide-react";
+import { Bookmark, CalendarDays, Camera, ClipboardList, FileText, LogOut, MapPin, Plus, Search, ShoppingBag, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import StatusBadge, { TypeBadge } from "@/components/StatusBadge";
-import { CATEGORY_MAP, timeAgo } from "@/lib/constants";
+import { CATEGORY_MAP } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
 
@@ -15,93 +15,58 @@ const TABS = [
   { id: "saved", label: "บันทึก" },
 ];
 
+const EMPTY = {
+  posts: { Icon: ClipboardList, title: "ยังไม่มีประกาศ", detail: "เริ่มสร้างประกาศตามหาของหาย หรือแจ้งของที่พบได้เลย" },
+  lost: { Icon: Search, title: "ยังไม่มีรายการของหาย", detail: "รายการของหายที่คุณแจ้งจะแสดงที่นี่" },
+  found: { Icon: ShoppingBag, title: "ยังไม่มีรายการของที่พบ", detail: "รายการของที่คุณแจ้งพบจะแสดงที่นี่" },
+  saved: { Icon: Bookmark, title: "ยังไม่มีรายการที่บันทึก", detail: "บันทึกประกาศที่สนใจเพื่อกลับมาดูภายหลัง" },
+};
+
+function StatCard({ Icon, value, label, tone }) {
+  return <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm shadow-slate-900/[0.02]"><div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-full", tone)}><Icon className="h-5 w-5" /></div><div className="min-w-0"><div className="text-2xl font-bold leading-none text-slate-950">{value}</div><div className="mt-1 truncate text-sm text-slate-500">{label}</div></div></div>;
+}
+
 export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState("posts");
   const [posts, setPosts] = useState([]);
   const [saved, setSaved] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { navigate("/login"); return; }
     const load = async () => {
       try {
-        const [allPosts, mySaved, myReviews] = await Promise.all([
-          base44.entities.Post.list("-created_date", 100),
-          base44.entities.SavedPost.filter({ user_id: user.id }),
-          base44.entities.Review.filter({ reviewed_id: user.id }),
-        ]);
-        setPosts(allPosts.filter((p) => p.created_by_id === user.id));
-        const savedIds = mySaved.map((s) => s.post_id);
-        setSaved(allPosts.filter((p) => savedIds.includes(p.id)));
-        setReviews(myReviews);
-      } catch {}
-      setLoading(false);
+        const [allPosts, savedRecords] = await Promise.all([base44.entities.Post.list("-created_date", 100), base44.entities.SavedPost.filter({ user_id: user.id })]);
+        setPosts(allPosts.filter((post) => post.created_by_id === user.id));
+        const savedIds = new Set(savedRecords.map((record) => record.post_id));
+        setSaved(allPosts.filter((post) => savedIds.has(post.id)));
+      } finally { setLoading(false); }
     };
     load();
-  }, [user]);
+  }, [navigate, user]);
 
+  const lost = useMemo(() => posts.filter((post) => post.post_type === "LOST"), [posts]);
+  const found = useMemo(() => posts.filter((post) => post.post_type === "FOUND"), [posts]);
+  const display = tab === "posts" ? posts : tab === "lost" ? lost : tab === "found" ? found : saved;
+  const initial = (user?.full_name || user?.email || "P").trim().charAt(0).toUpperCase();
+  const joined = user?.created_at || user?.created_date;
+  const joinedLabel = joined ? new Date(joined).toLocaleDateString("th-TH", { month: "short", year: "numeric" }) : "สมาชิกใหม่";
+  const empty = EMPTY[tab];
   if (!user) return null;
 
-  const myLost = posts.filter((p) => p.post_type === "LOST");
-  const myFound = posts.filter((p) => p.post_type === "FOUND");
-  const returnedCount = posts.filter((p) => p.status === "RETURNED").length;
-  const avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—";
+  return <div className="min-h-full bg-[radial-gradient(circle_at_50%_0%,#edf5ff_0%,#f8fafc_42%,#f8fafc_100%)] px-4 py-6 sm:px-6 lg:py-8"><main className="mx-auto max-w-6xl rounded-[24px] border border-slate-200/90 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-7">
+    <section className="relative isolate overflow-hidden rounded-[20px] border border-slate-100 bg-[linear-gradient(115deg,#f8fbff_0%,#eef6ff_55%,#e0efff_100%)] px-6 py-7 sm:px-9 sm:py-8">
+      <div className="absolute bottom-0 right-0 h-44 w-2/3 bg-[radial-gradient(ellipse_at_bottom_right,rgba(147,197,253,.55),transparent_62%)]" /><div className="absolute -bottom-16 right-16 h-36 w-80 rotate-[-12deg] rounded-[100%] border-t-[26px] border-blue-100/80" /><MapPin className="absolute right-16 top-5 h-24 w-24 fill-blue-200/70 text-blue-200/70 sm:right-20" strokeWidth={1.2} />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center"><div className="relative shrink-0"><div className="grid h-28 w-28 place-items-center rounded-full border-4 border-white bg-[linear-gradient(145deg,#e9f1ff,#dce9ff)] text-5xl font-bold text-blue-600 shadow-sm">{initial}</div><button type="button" aria-label="เปลี่ยนรูปโปรไฟล์" className="absolute bottom-0 right-0 grid h-10 w-10 place-items-center rounded-full border-4 border-white bg-blue-600 text-white shadow-md"><Camera className="h-4 w-4" /></button></div><div className="min-w-0"><h1 className="truncate text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{user.full_name || user.email?.split("@")[0] || "ผู้ใช้ FindIt Map"}</h1><p className="mt-1 truncate text-lg text-slate-500">{user.email}</p><div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-slate-500"><span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-amber-600"><Star className="h-4 w-4 fill-amber-500 text-amber-500" /> สมาชิก</span><span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" /> สมาชิกตั้งแต่ {joinedLabel}</span></div></div></div>
+    </section>
 
-  const display = tab === "posts" ? posts : tab === "lost" ? myLost : tab === "found" ? myFound : saved;
+    <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><StatCard Icon={FileText} value={posts.length} label="ประกาศของฉัน" tone="bg-blue-50 text-blue-600" /><StatCard Icon={Search} value={lost.length} label="ของหาย" tone="bg-rose-50 text-rose-500" /><StatCard Icon={ShoppingBag} value={found.length} label="ของที่พบ" tone="bg-emerald-50 text-emerald-600" /><StatCard Icon={Bookmark} value={saved.length} label="รายการที่บันทึก" tone="bg-violet-50 text-violet-600" /></section>
 
-  return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-4">
-      {/* Header */}
-      <div className="bg-card rounded-3xl border border-border p-5 mb-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-extrabold">{(user.full_name || user.email || "U").charAt(0).toUpperCase()}</div>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">{user.full_name || "ผู้ใช้"}</h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            <div className="flex items-center gap-3 mt-1.5 text-xs">
-              <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-warning fill-warning" /> {avgRating}</span>
-              <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-found" /> คืนแล้ว {returnedCount}</span>
-              <span className="text-muted-foreground">สมาชิกตั้งแต่ {new Date(user.created_date).toLocaleDateString("th-TH", { month: "short", year: "numeric" })}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <section className="mt-7 border-b border-slate-200"><div className="flex gap-2 overflow-x-auto pb-3">{TABS.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className={cn("shrink-0 rounded-full border px-6 py-2.5 text-sm font-semibold transition", tab === item.id ? "border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-600/25" : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50")}>{item.label}</button>)}</div></section>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={cn("px-3.5 py-1.5 rounded-full text-xs font-semibold border shrink-0", tab === t.id ? "bg-primary text-white border-primary" : "bg-card border-border")}>{t.label}</button>
-        ))}
-      </div>
-
-      {/* List */}
-      {loading ? <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-card rounded-2xl border border-border animate-pulse" />)}</div> : display.length === 0 ? (
-        <div className="text-center py-12">{tab === "saved" ? <Bookmark className="mx-auto mb-2 h-10 w-10 text-muted-foreground" /> : <ClipboardList className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />}<p className="text-sm text-muted-foreground">{tab === "saved" ? "ยังไม่มีประกาศที่บันทึก" : "ยังไม่มีประกาศ"}</p></div>
-      ) : (
-        <div className="space-y-2">
-          {display.map((p) => {
-            const c = CATEGORY_MAP[p.category];
-            return (
-              <Link key={p.id} to={`/post/${p.id}`} className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-accent transition">
-                <div className="w-16 h-16 rounded-xl overflow-hidden bg-accent shrink-0">
-                  {p.images?.[0] ? <img src={p.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><CategoryIcon id={c?.id} className="h-6 w-6 text-muted-foreground" /></div>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5"><TypeBadge type={p.post_type} /></div>
-                  <div className="font-semibold text-sm truncate">{p.title}</div>
-                  <div className="mt-1"><StatusBadge status={p.status} postType={p.post_type} /></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      <button onClick={() => logout()} className="w-full mt-6 px-4 py-3 rounded-full border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-accent"><LogOut className="w-4 h-4" /> ออกจากระบบ</button>
-    </div>
-  );
+    <section className="mt-5">{loading ? <div className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50"><div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" /></div> : display.length === 0 ? <div className="grid min-h-[318px] place-items-center rounded-2xl border border-dashed border-blue-100 bg-[radial-gradient(circle_at_50%_35%,#f2f7ff_0%,#fff_58%)] px-6 text-center"><div><div className="relative mx-auto mb-4 grid h-24 w-24 place-items-center rounded-full bg-blue-50 text-blue-600"><empty.Icon className="h-12 w-12" strokeWidth={1.55} /><span className="absolute -right-1 top-1 h-3 w-3 rounded-full bg-blue-400 ring-4 ring-white" /></div><h2 className="text-2xl font-bold text-slate-950">{empty.title}</h2><p className="mt-2 text-slate-500">{empty.detail}</p>{tab !== "saved" && <button type="button" onClick={() => navigate("/post/new")} className="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"><Plus className="h-5 w-5" /> แจ้งประกาศแรกของคุณ</button>}</div></div> : <div className="grid gap-3 sm:grid-cols-2">{display.map((post) => { const category = CATEGORY_MAP[post.category]; return <Link key={post.id} to={`/post/${post.id}`} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition hover:border-blue-200 hover:shadow-md"><div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100">{post.images?.[0] ? <img src={post.images[0]} alt="" className="h-full w-full object-cover" /> : <CategoryIcon id={category?.id} className="h-6 w-6 text-slate-400" />}</div><div className="min-w-0"><TypeBadge type={post.post_type} /><h3 className="mt-1 truncate font-semibold text-slate-900">{post.title}</h3><StatusBadge status={post.status} postType={post.post_type} /></div></Link>; })}</div>}</section>
+    <button type="button" onClick={() => logout()} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"><LogOut className="h-5 w-5" /> ออกจากระบบ</button>
+  </main></div>;
 }
