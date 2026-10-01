@@ -48,7 +48,18 @@ const userFromAuth = (user) => user && ({
 });
 
 const auth = {
-  async me() { const { data, error } = await requireSupabase().auth.getUser(); fail(error); if (!data.user) throw new Error("auth_required"); return userFromAuth(data.user); },
+  async me() {
+    // Reading the cached session is immediate and avoids blocking the entire UI
+    // while a network request to Auth is pending during the initial page load.
+    const { data, error } = await requireSupabase().auth.getSession();
+    fail(error);
+    if (!data.session?.user) {
+      const authError = new Error("auth_required");
+      authError.status = 401;
+      throw authError;
+    }
+    return userFromAuth(data.session.user);
+  },
   async register({ email, password, ...profile }) { const { data, error } = await requireSupabase().auth.signUp({ email, password, options: { data: profile } }); fail(error); return data; },
   async verifyOtp({ email, otpCode }) { const { data, error } = await requireSupabase().auth.verifyOtp({ email, token: otpCode, type: "email" }); fail(error); window.dispatchEvent(new Event("findme:auth-changed")); return { access_token: data.session?.access_token, user: userFromAuth(data.user) }; },
   async resendOtp(email) { const { error } = await requireSupabase().auth.resend({ type: "signup", email }); fail(error); },
