@@ -48,11 +48,11 @@ const COLORS = {
   RETURNED: "#94A3B8",
 };
 
-function Recenter({ center }) {
+function Recenter({ center, zoom = 16 }) {
   const map = useMap();
   React.useEffect(() => {
-    if (center) map.setView(center, map.getZoom() || 13);
-  }, [center, map]);
+    if (center) map.flyTo(center, zoom, { animate: true, duration: 0.65 });
+  }, [center, map, zoom]);
   return null;
 }
 
@@ -75,7 +75,7 @@ function FitPostMarkers({ posts, skip }) {
   return null;
 }
 
-export default function MapView({ posts = [], center, userPosition, onSelect, selectedId, height = "100%", interactive = true }) {
+export default function MapView({ posts = [], center, focusZoom, userPosition, onSelect, selectedId, height = "100%", interactive = true }) {
   const markers = posts.filter((p) => Number.isFinite(Number(p.public_latitude ?? p.latitude)) && Number.isFinite(Number(p.public_longitude ?? p.longitude)));
 
   return (
@@ -92,7 +92,7 @@ export default function MapView({ posts = [], center, userPosition, onSelect, se
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>'
       />
-      <Recenter center={center} />
+      <Recenter center={center} zoom={focusZoom} />
       <FitPostMarkers posts={markers} skip={Boolean(center)} />
       {userPosition && (
         <>

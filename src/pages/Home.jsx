@@ -56,10 +56,10 @@ export default function Home() {
   const [distanceFilter, setDistanceFilter] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
-  const [placeQuery, setPlaceQuery] = useState("");
   const [placeSuggestions, setPlaceSuggestions] = useState([]);
   const [placeLoading, setPlaceLoading] = useState(false);
   const [placeFocus, setPlaceFocus] = useState(null);
+  const [selectedPlaceLabel, setSelectedPlaceLabel] = useState("");
   const [userPos, setUserPos] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
   const [selectedPost, setSelectedPost] = useState(null);
@@ -73,8 +73,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const query = placeQuery.trim();
-    if (!GEOAPIFY_KEY || query.length < 3) {
+    const query = search.trim();
+    if (!GEOAPIFY_KEY || query.length < 3 || query === selectedPlaceLabel) {
       setPlaceSuggestions([]);
       return undefined;
     }
@@ -106,7 +106,7 @@ export default function Home() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [placeQuery, userPos]);
+  }, [search, selectedPlaceLabel, userPos]);
 
   const filtered = useMemo(() => {
     let result = posts;
@@ -120,7 +120,7 @@ export default function Home() {
     if (distanceFilter && userPos) {
       result = result.filter((p) => p.public_latitude && distanceMeters(userPos[0], userPos[1], p.public_latitude, p.public_longitude) <= distanceFilter);
     }
-    if (search.trim()) {
+    if (search.trim() && !placeFocus) {
       const q = search.toLowerCase();
       result = result.filter((p) => p.title?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || p.place_name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q));
     }
@@ -174,10 +174,33 @@ export default function Home() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="ค้นหา เช่น กระเป๋าสตางค์, iPhone, กุญแจรถ..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-accent border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                onChange={(e) => { setSearch(e.target.value); setPlaceFocus(null); setSelectedPlaceLabel(""); }}
+                placeholder="ค้นหาประกาศหรือสถานที่ เช่น iPhone, สยามพารากอน"
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-accent border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                autoComplete="off"
               />
+              {placeLoading && <div className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />}
+              {placeSuggestions.length > 0 && (
+                <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-xl">
+                  {placeSuggestions.map((place) => (
+                    <button
+                      key={`${place.place_id}-${place.lon}-${place.lat}`}
+                      type="button"
+                      onClick={() => {
+                        setSearch(place.formatted);
+                        setSelectedPlaceLabel(place.formatted);
+                        setPlaceFocus([Number(place.lat), Number(place.lon)]);
+                        setPlaceSuggestions([]);
+                      }}
+                      className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-accent"
+                    >
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span className="line-clamp-2">{place.formatted}</span>
+                    </button>
+                  ))}
+                  <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">สถานที่โดย Geoapify © OpenStreetMap contributors</div>
+                </div>
+              )}
             </div>
             <button onClick={() => setShowFilters(!showFilters)} className={cn("px-3.5 rounded-lg border text-sm font-medium flex items-center gap-1.5 transition", showFilters ? "bg-primary text-white border-primary" : "bg-card border-border hover:bg-accent")}>
               <SlidersHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">ตัวกรอง</span>
@@ -185,38 +208,6 @@ export default function Home() {
             <button onClick={requestLocation} className="px-3.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-sm font-medium flex items-center gap-1.5 hover:bg-primary/15 transition" aria-label="ใช้ตำแหน่งปัจจุบัน">
               <Navigation className={cn("w-4 h-4", locationStatus === "requesting" && "animate-pulse")} /> <span className="hidden sm:inline">ใกล้ฉัน</span>
             </button>
-          </div>
-
-          <div className="relative mt-2">
-            <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-primary" />
-            <input
-              value={placeQuery}
-              onChange={(event) => setPlaceQuery(event.target.value)}
-              placeholder="ค้นหาสถานที่ เช่น มหาวิทยาลัยเชียงใหม่, สยามพารากอน"
-              className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              autoComplete="off"
-            />
-            {placeLoading && <div className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />}
-            {placeSuggestions.length > 0 && (
-              <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-xl">
-                {placeSuggestions.map((place) => (
-                  <button
-                    key={`${place.place_id}-${place.lon}-${place.lat}`}
-                    type="button"
-                    onClick={() => {
-                      setPlaceQuery(place.formatted);
-                      setPlaceFocus([Number(place.lat), Number(place.lon)]);
-                      setPlaceSuggestions([]);
-                    }}
-                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-accent"
-                  >
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span className="line-clamp-2">{place.formatted}</span>
-                  </button>
-                ))}
-                <div className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">สถานที่โดย Geoapify © OpenStreetMap contributors</div>
-              </div>
-            )}
           </div>
 
           {showFilters && (
