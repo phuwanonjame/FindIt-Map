@@ -82,6 +82,18 @@
   min-height: 100%;
 }
 
+#findit-map-panel .leaflet-top.leaflet-left {
+  top: 66px;
+  left: 8px;
+}
+
+#findit-map-panel .leaflet-control-zoom {
+  border: 1px solid #dce6f2;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(25, 57, 105, 0.12);
+  overflow: hidden;
+}
+
 html,
 body,
 #root {

@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Map as MapIcon, Search, Plus, MessageSquare, User, Bell, Menu, X, LogIn, LogOut, ChevronDown } from "lucide-react";
+import { House, Map as MapIcon, Search, MessageSquare, User, Bell, Menu, X, LogIn, LogOut, ChevronDown, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "แผนที่", icon: MapIcon },
-  { to: "/search", label: "ค้นหา", icon: Search },
-  { to: "/post/new", label: "แจ้ง", icon: Plus, primary: true },
+  { to: "/", label: "หน้าแรก", icon: House },
+  { to: "/#findit-map-panel", label: "แผนที่", icon: MapIcon },
+  { to: "/post/new", label: "แจ้งพบของ", icon: BadgeCheck, primary: true },
+  { to: "/search", label: "ค้นหาของ", icon: Search },
   { to: "/messages", label: "ข้อความ", icon: MessageSquare },
-  { to: "/profile", label: "โปรไฟล์", icon: User },
 ];
 
 export default function Layout() {
@@ -19,27 +19,33 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (location.hash !== "#findit-map-panel") return undefined;
+    const timer = window.setTimeout(() => document.getElementById("findit-map-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, location.pathname]);
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src="/findit-logo.png" alt="FindIt Map" className="h-8 w-8 rounded-lg object-cover" />
-            <span className="font-bold text-[15px] tracking-tight">FindIt Map</span>
+    <div className="min-h-screen bg-[#f7faff] flex flex-col">
+      <header className="sticky top-0 z-40 border-b border-[#e5ebf3] bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-7">
+          <Link to="/" className="flex shrink-0 items-center gap-2.5">
+            <img src="/findit-logo.png" alt="FindIt Map" className="h-11 w-11 object-contain" />
+            <span><span className="block text-[21px] font-extrabold leading-tight tracking-tight text-[#0b1c43]">FindIt <span className="text-blue-600">Map</span></span><span className="hidden text-[10px] leading-tight text-slate-500 sm:block">เจอของหาย ให้กลับมาหาเจ้าของ</span></span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => {
               const active = location.pathname === item.to;
               if (item.primary) {
                 return (
-                  <Link key={item.to} to={item.to} className="ml-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition">
-                    <Plus className="w-4 h-4" /> แจ้งประกาศ
+                  <Link key={item.to} to={item.to} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">
+                    <item.icon className="h-4 w-4" /> {item.label}
                   </Link>
                 );
               }
               return (
-                <Link key={item.to} to={item.to} className={cn("inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition", active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent")}>
+                <Link key={item.to} to={item.to} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
                   <item.icon className="w-4 h-4" /> {item.label}
                 </Link>
               );
@@ -69,14 +75,14 @@ export default function Layout() {
                 <LogIn className="w-4 h-4" /> เข้าสู่ระบบ
               </button>
             )}
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg hover:bg-accent">
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-accent lg:hidden">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-border bg-card animate-fade-in">
+          <div className="border-t border-border bg-card animate-fade-in lg:hidden">
             {NAV.map((item) => (
               <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-accent border-b border-border/50">
                 <item.icon className="w-5 h-5 text-muted-foreground" /> {item.label}

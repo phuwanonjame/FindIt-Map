@@ -9,7 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 // Add page imports here
-import Home from '@/pages/Home';
+import Home from '@/pages/HomeDashboard';
 import Search from '@/pages/Search';
 import CreatePost from '@/pages/CreatePost';
 import PostDetail from '@/pages/PostDetail';
