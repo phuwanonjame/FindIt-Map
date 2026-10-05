@@ -5,7 +5,7 @@ import L from "leaflet";
 import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { CATEGORIES, CATEGORY_MAP, LOCATION_PRIVACY, HOLDER_TYPES, BANGKOK_CENTER } from "@/lib/constants";
+import { CATEGORIES, LOCATION_PRIVACY, HOLDER_TYPES, BANGKOK_CENTER } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import CreatePostLanding from "@/components/CreatePostLanding";
 import { cn } from "@/lib/utils";
@@ -206,7 +206,7 @@ export default function CreatePost() {
         ))}
       </div>
 
-      <div className="bg-card rounded-3xl border border-border p-5 md:p-6">
+      <div className="bg-card rounded-3xl border border-border p-5 md:p-6 [&_input:not([type=checkbox])]:!bg-white [&_textarea]:!bg-white [&_select]:!bg-white">
         {step === 0 && (
           <div className="space-y-4">
             <div>
