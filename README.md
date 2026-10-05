@@ -76,11 +76,11 @@ This is a static Vite site, so Cloudflare Pages serves it from its CDN without a
 
 ## Supabase production setup
 
-1. Create a Supabase project, then run [supabase/schema.sql](supabase/schema.sql) in its SQL Editor.
+1. Create a Supabase project, then run [supabase/all-in-one-setup.sql](supabase/all-in-one-setup.sql) in its SQL Editor. After that, run [supabase/chat-security-setup.sql](supabase/chat-security-setup.sql) to make conversations, messages, notifications, and chat attachments private. Existing projects only need the chat security script.
 2. Copy `.env.example` to `.env.local` and fill `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY` from the project Connect dialog. Never use the service-role key in the browser.
 3. In Supabase Auth, enable Email provider. The registration screen expects an email OTP; configure email confirmation / OTP delivery in Auth settings. For Google sign-in, enable Google and add your local and production callback URLs.
 
-The app now stores users through Supabase Auth, records in Postgres, and uploaded post images in Supabase Storage. Row-level security restricts writes and deletes to the owner while public listings remain readable.
+The app stores users through Supabase Auth, records in Postgres, and uploaded files in Supabase Storage. Post images are public; chat attachments use a separate private bucket with participant-only access. Never put the Supabase secret key in Vite environment variables.
 
 This project now runs as a normal Vite + React app and does not require Base44, Deno, a Base44 login, or a remote backend.
 
@@ -89,7 +89,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (normally `http://localhost:5173`). App accounts, posts, messages, and notifications are stored only in the current browser's LocalStorage. During local registration, use OTP `123456`.
+Open the URL printed by Vite (normally `http://localhost:5173`). The local frontend connects to the Supabase project configured in `.env.local`; local posts, messages, and notifications are real database records.
 
 Build a production bundle with `npm run build`.
 

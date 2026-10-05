@@ -8,15 +8,33 @@ import { timeAgo } from "@/lib/constants";
 export default function Messages() {
   const { user } = useAuth();
   const [convs, setConvs] = useState([]);
+  const [unreadByConversation, setUnreadByConversation] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
-    base44.entities.Conversation.list("-last_message_at", 100).then((d) => {
-      setConvs(d.filter((c) => c.participant_ids?.includes(user.id)));
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [user]);
+    let active = true;
+    const refresh = async () => {
+      try {
+        const [all, notifications] = await Promise.all([
+          base44.entities.Conversation.list(),
+          base44.entities.Notification.filter({ user_id: user.id }),
+        ]);
+        if (!active) return;
+        setConvs(all.filter((conversation) => conversation.participant_ids?.includes(user.id)).sort((a, b) => new Date(b.last_message_at || b.created_date).getTime() - new Date(a.last_message_at || a.created_date).getTime()));
+        const counts = {};
+        notifications.filter((notification) => notification.type === "MESSAGE" && !notification.read_at).forEach((notification) => {
+          const conversationId = notification.conversation_id || notification.reference_id;
+          counts[conversationId] = (counts[conversationId] || 0) + 1;
+        });
+        setUnreadByConversation(counts);
+      } catch { /* Keep the previous list if offline. */ }
+      finally { if (active) setLoading(false); }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [user?.id]);
 
   if (!user) {
     return <div className="max-w-md mx-auto px-4 py-16 text-center"><MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground">เข้าสู่ระบบเพื่อใช้ข้อความ</p><Link to="/login" className="text-primary font-semibold">เข้าสู่ระบบ</Link></div>;
@@ -40,6 +58,7 @@ export default function Messages() {
               </div>
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">{c.last_message_at ? timeAgo(c.last_message_at) : ""}</div>
+                {unreadByConversation[c.id] > 0 && <span className="inline-flex min-w-5 justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{unreadByConversation[c.id]}</span>}
                 <ChevronRight className="w-4 h-4 text-muted-foreground inline" />
               </div>
             </Link>

@@ -15,8 +15,12 @@ const entity = (entityName) => ({
     return data.map(toRecord);
   },
   async filter(query) {
-    const rows = await this.list();
-    return rows.filter((row) => Object.entries(query || {}).every(([key, value]) => row[key] === value));
+    const client = requireSupabase();
+    let request = client.from(table).select("*").eq("entity", entityName);
+    if (query && Object.keys(query).length) request = request.contains("data", query);
+    const { data, error } = await request.order("created_at", { ascending: false });
+    fail(error);
+    return data.map(toRecord);
   },
   async get(id) {
     const { data, error } = await requireSupabase().from(table).select("*").eq("entity", entityName).eq("id", id).single();
@@ -54,8 +58,7 @@ const auth = {
     const { data, error } = await requireSupabase().auth.getSession();
     fail(error);
     if (!data.session?.user) {
-      const authError = new Error("auth_required");
-      authError.status = 401;
+      const authError = Object.assign(new Error("auth_required"), { status: 401 });
       throw authError;
     }
     return userFromAuth(data.session.user);

@@ -15,7 +15,7 @@ export default function Notifications() {
     if (!user) { setLoading(false); return; }
     try {
       const d = await base44.entities.Notification.filter({ user_id: user.id });
-      d.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      d.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
       setNotifs(d);
     } catch {}
     setLoading(false);
@@ -26,12 +26,14 @@ export default function Notifications() {
   const markRead = async (n) => {
     if (n.read_at) return;
     await base44.entities.Notification.update(n.id, { read_at: new Date().toISOString() });
+    window.dispatchEvent(new Event("pobjer:notifications-changed"));
     load();
   };
 
   const markAll = async () => {
     const unread = notifs.filter((n) => !n.read_at);
     for (const n of unread) await base44.entities.Notification.update(n.id, { read_at: new Date().toISOString() });
+    window.dispatchEvent(new Event("pobjer:notifications-changed"));
     load();
   };
 
@@ -48,15 +50,15 @@ export default function Notifications() {
       ) : (
         <div className="space-y-2">
           {notifs.map((n) => (
-            <button key={n.id} onClick={() => markRead(n)} className={cn("w-full text-left flex gap-3 p-3 rounded-2xl border transition", n.read_at ? "bg-card border-border" : "bg-primary/5 border-primary/20")}>
+            <Link key={n.id} to={n.type === "MESSAGE" ? `/messages/${n.conversation_id || n.reference_id}` : n.reference_id ? `/post/${n.reference_id}` : "#"} onClick={() => markRead(n)} className={cn("w-full text-left flex gap-3 p-3 rounded-2xl border transition", n.read_at ? "bg-card border-border" : "bg-primary/5 border-primary/20")}>
               <div className={cn("w-2 h-2 rounded-full mt-2 shrink-0", n.read_at ? "bg-transparent" : "bg-primary")} />
               <div className="flex-1">
                 <div className="font-semibold text-sm">{n.title}</div>
                 {n.body && <div className="text-xs text-muted-foreground mt-0.5">{n.body}</div>}
                 <div className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_date)}</div>
               </div>
-              {n.reference_id && <Link to={`/post/${n.reference_id}`} className="text-xs text-primary self-center">ดู →</Link>}
-            </button>
+              {n.reference_id && <span className="text-xs text-primary self-center">ดู →</span>}
+            </Link>
           ))}
         </div>
       )}

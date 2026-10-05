@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { House, Map as MapIcon, Search, MessageSquare, User, Bell, Menu, X, LogIn, LogOut, ChevronDown, BadgeCheck } from "lucide-react";
+import { House, Map as MapIcon, Search, MessageSquare, User, Bell, Menu, X, LogIn, LogOut, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
+import { base44 } from "@/api/base44Client";
 
 const NAV = [
   { to: "/", label: "หน้าแรก", icon: House },
   { to: "/map#findit-map-panel", label: "แผนที่", icon: MapIcon },
-  { to: "/post/new", label: "แจ้งพบของ", icon: BadgeCheck, primary: true },
   { to: "/search", label: "ค้นหาของ", icon: Search },
   { to: "/messages", label: "ข้อความ", icon: MessageSquare },
 ];
 const isNavActive = (pathname, to) => {
   const path = to.split("#")[0];
-  return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
+  return path === "/" ? pathname === "/" || pathname === "/post/new" : pathname === path || pathname.startsWith(`${path}/`);
 };
 
 export default function Layout() {
@@ -22,6 +22,26 @@ export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); setUnreadMessages(0); return undefined; }
+    let active = true;
+    const refresh = async () => {
+      try {
+        const rows = await base44.entities.Notification.filter({ user_id: user.id });
+        if (!active) return;
+        const unread = rows.filter((row) => !row.read_at);
+        setUnreadCount(unread.length);
+        setUnreadMessages(unread.filter((row) => row.type === "MESSAGE").length);
+      } catch { /* Keep the previous badge when temporarily offline. */ }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener("pobjer:notifications-changed", refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("pobjer:notifications-changed", refresh); };
+  }, [user?.id]);
 
   useEffect(() => {
     if (location.hash !== "#findit-map-panel") return undefined;
@@ -41,16 +61,10 @@ export default function Layout() {
           <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => {
               const active = isNavActive(location.pathname, item.to);
-              if (item.primary) {
-                return (
-                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
-                    <item.icon className="h-4 w-4" /> {item.label}
-                  </Link>
-                );
-              }
               return (
                 <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
                   <item.icon className="w-4 h-4" /> {item.label}
+                  {item.to === "/messages" && unreadMessages > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[10px] text-white">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}
                 </Link>
               );
             })}
@@ -59,6 +73,7 @@ export default function Layout() {
           <div className="flex items-center gap-1.5">
             <Link to="/notifications" aria-current={location.pathname === "/notifications" ? "page" : undefined} className={cn("relative rounded-lg p-2 transition", location.pathname === "/notifications" ? "bg-blue-50 text-blue-700" : "text-muted-foreground hover:bg-accent")}>
               <Bell className="w-5 h-5" />
+              {unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </Link>
             {user ? (
               <div className="relative">
@@ -90,6 +105,7 @@ export default function Layout() {
             {NAV.map((item) => (
               <Link key={item.to} to={item.to} aria-current={isNavActive(location.pathname, item.to) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 border-b border-border/50 px-4 py-3 text-sm font-medium", isNavActive(location.pathname, item.to) ? "bg-blue-50 text-blue-700" : "hover:bg-accent")}>
                 <item.icon className="w-5 h-5" /> {item.label}
+                {item.to === "/messages" && unreadMessages > 0 && <span className="ml-auto rounded-full bg-red-500 px-1.5 text-[10px] text-white">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}
               </Link>
             ))}
           </div>
@@ -101,21 +117,12 @@ export default function Layout() {
       </main>
 
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-4 h-16">
           {NAV.map((item) => {
             const active = isNavActive(location.pathname, item.to);
-            if (item.primary) {
-              return (
-                <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className="flex flex-col items-center justify-center">
-                  <div className={cn("-mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-md", active && "ring-4 ring-blue-100")}>
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                </Link>
-              );
-            }
             return (
               <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
-                <item.icon className="w-5 h-5" /> {item.label}
+                <span className="relative"><item.icon className="w-5 h-5" />{item.to === "/messages" && unreadMessages > 0 && <span className="absolute -right-2 -top-2 h-2.5 w-2.5 rounded-full bg-red-500" />}</span> {item.label}
               </Link>
             );
           })}
