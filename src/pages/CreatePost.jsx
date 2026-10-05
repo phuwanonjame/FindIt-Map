@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle, CircleDot } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { CATEGORIES, CATEGORY_MAP, LOCATION_PRIVACY, HOLDER_TYPES, BANGKOK_CENTER } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
+import CreatePostLanding from "@/components/CreatePostLanding";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 
@@ -56,8 +57,12 @@ function LocationPicker({ position, setPosition }) {
 
 export default function CreatePost() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [postType, setPostType] = useState(null);
+  const [postType, setPostType] = useState(() => {
+    const requestedType = searchParams.get("type");
+    return requestedType === "LOST" || requestedType === "FOUND" ? requestedType : null;
+  });
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -78,7 +83,7 @@ export default function CreatePost() {
     pet_name: "", pet_species: "", pet_breed: "", pet_gender: "", pet_collar: "", pet_microchip: "",
   });
 
-  useEffect(() => { if (!user) navigate("/login"); }, [user]);
+  useEffect(() => { if (postType && !user) navigate("/login"); }, [postType, user, navigate]);
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -170,26 +175,7 @@ export default function CreatePost() {
   };
 
   if (!postType) {
-    return (
-      <div className="max-w-3xl mx-auto w-full px-4 py-8">
-        <h1 className="text-2xl font-extrabold mb-1">แจ้งประกาศ</h1>
-        <p className="text-sm text-muted-foreground mb-6">เลือกประเภทประกาศที่ต้องการสร้าง</p>
-        <div className="grid md:grid-cols-2 gap-4">
-          <button onClick={() => setPostType("LOST")} className="text-left p-6 rounded-3xl border-2 border-border hover:border-lost hover:shadow-lg transition group bg-card">
-            <div className="w-14 h-14 rounded-2xl bg-lost/10 flex items-center justify-center mb-4"><CircleDot className="h-7 w-7 text-lost" /></div>
-            <h2 className="text-xl font-bold mb-1">ของหาย</h2>
-            <p className="text-sm text-muted-foreground mb-4">ฉันทำของหายและกำลังตามหา</p>
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lost text-white text-sm font-semibold group-hover:gap-2.5 transition-all">แจ้งของหาย <ChevronRight className="w-4 h-4" /></span>
-          </button>
-          <button onClick={() => setPostType("FOUND")} className="text-left p-6 rounded-3xl border-2 border-border hover:border-found hover:shadow-lg transition group bg-card">
-            <div className="w-14 h-14 rounded-2xl bg-found/10 flex items-center justify-center mb-4"><CircleDot className="h-7 w-7 text-found" /></div>
-            <h2 className="text-xl font-bold mb-1">พบของ</h2>
-            <p className="text-sm text-muted-foreground mb-4">ฉันพบของและต้องการตามหาเจ้าของ</p>
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-found text-white text-sm font-semibold group-hover:gap-2.5 transition-all">แจ้งพบของ <ChevronRight className="w-4 h-4" /></span>
-          </button>
-        </div>
-      </div>
-    );
+    return <CreatePostLanding onChooseType={setPostType} />;
   }
 
   const isPet = form.category === "pet";
@@ -207,7 +193,7 @@ export default function CreatePost() {
   return (
     <div className="max-w-2xl mx-auto w-full px-4 py-6">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => step === 0 ? setPostType(null) : setStep(step - 1)} className="p-2 rounded-full hover:bg-accent"><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={() => step === 0 ? navigate("/") : setStep(step - 1)} className="p-2 rounded-full hover:bg-accent"><ChevronLeft className="w-5 h-5" /></button>
         <div className="flex-1">
           <h1 className="text-lg font-bold">{postType === "LOST" ? "แจ้งของหาย" : "แจ้งพบของ"}</h1>
           <p className="text-xs text-muted-foreground">ขั้นตอนที่ {step + 1} จาก {steps.length} · {steps[step]}</p>

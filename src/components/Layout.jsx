@@ -6,11 +6,15 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "หน้าแรก", icon: House },
-  { to: "/#findit-map-panel", label: "แผนที่", icon: MapIcon },
+  { to: "/map#findit-map-panel", label: "แผนที่", icon: MapIcon },
   { to: "/post/new", label: "แจ้งพบของ", icon: BadgeCheck, primary: true },
   { to: "/search", label: "ค้นหาของ", icon: Search },
   { to: "/messages", label: "ข้อความ", icon: MessageSquare },
 ];
+const isNavActive = (pathname, to) => {
+  const path = to.split("#")[0];
+  return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
+};
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -36,16 +40,16 @@ export default function Layout() {
 
           <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => {
-              const active = location.pathname === item.to;
+              const active = isNavActive(location.pathname, item.to);
               if (item.primary) {
                 return (
-                  <Link key={item.to} to={item.to} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">
+                  <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
                     <item.icon className="h-4 w-4" /> {item.label}
                   </Link>
                 );
               }
               return (
-                <Link key={item.to} to={item.to} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
+                <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-blue-50 hover:text-blue-700")}>
                   <item.icon className="w-4 h-4" /> {item.label}
                 </Link>
               );
@@ -53,12 +57,12 @@ export default function Layout() {
           </nav>
 
           <div className="flex items-center gap-1.5">
-            <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-accent transition">
-              <Bell className="w-5 h-5 text-muted-foreground" />
+            <Link to="/notifications" aria-current={location.pathname === "/notifications" ? "page" : undefined} className={cn("relative rounded-lg p-2 transition", location.pathname === "/notifications" ? "bg-blue-50 text-blue-700" : "text-muted-foreground hover:bg-accent")}>
+              <Bell className="w-5 h-5" />
             </Link>
             {user ? (
               <div className="relative">
-                <button type="button" onClick={() => setUserMenuOpen((open) => !open)} className="flex items-center gap-1 rounded-full p-0.5 transition hover:bg-accent" aria-label="เปิดเมนูผู้ใช้" aria-expanded={userMenuOpen}>
+                <button type="button" onClick={() => setUserMenuOpen((open) => !open)} className={cn("flex items-center gap-1 rounded-full p-0.5 transition hover:bg-accent", location.pathname === "/profile" && "ring-2 ring-blue-500 ring-offset-2")} aria-label="เปิดเมนูผู้ใช้" aria-expanded={userMenuOpen}>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{(user.full_name || user.email || "U").charAt(0).toUpperCase()}</span>
                   <ChevronDown className={cn("hidden h-4 w-4 text-muted-foreground transition md:block", userMenuOpen && "rotate-180")} />
                 </button>
@@ -84,8 +88,8 @@ export default function Layout() {
         {mobileOpen && (
           <div className="border-t border-border bg-card animate-fade-in lg:hidden">
             {NAV.map((item) => (
-              <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-accent border-b border-border/50">
-                <item.icon className="w-5 h-5 text-muted-foreground" /> {item.label}
+              <Link key={item.to} to={item.to} aria-current={isNavActive(location.pathname, item.to) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={cn("flex items-center gap-3 border-b border-border/50 px-4 py-3 text-sm font-medium", isNavActive(location.pathname, item.to) ? "bg-blue-50 text-blue-700" : "hover:bg-accent")}>
+                <item.icon className="w-5 h-5" /> {item.label}
               </Link>
             ))}
           </div>
@@ -99,18 +103,18 @@ export default function Layout() {
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border">
         <div className="grid grid-cols-5 h-16">
           {NAV.map((item) => {
-            const active = location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to));
+            const active = isNavActive(location.pathname, item.to);
             if (item.primary) {
               return (
-                <Link key={item.to} to={item.to} className="flex flex-col items-center justify-center">
-                  <div className="w-11 h-11 -mt-4 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className="flex flex-col items-center justify-center">
+                  <div className={cn("-mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-md", active && "ring-4 ring-blue-100")}>
                     <item.icon className="w-5 h-5" />
                   </div>
                 </Link>
               );
             }
             return (
-              <Link key={item.to} to={item.to} className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
+              <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={cn("flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
                 <item.icon className="w-5 h-5" /> {item.label}
               </Link>
             );

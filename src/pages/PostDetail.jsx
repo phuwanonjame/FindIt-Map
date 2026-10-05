@@ -181,14 +181,17 @@ export default function PostDetail() {
   }
 
   if (!post) {
-    return <div className="max-w-2xl mx-auto px-4 py-16 text-center"><p className="text-muted-foreground">ไม่พบประกาศ</p><Link to="/" className="text-primary font-semibold">กลับหน้าแผนที่</Link></div>;
+    return <div className="max-w-2xl mx-auto px-4 py-16 text-center"><p className="text-muted-foreground">ไม่พบประกาศ</p><Link to="/map" className="text-primary font-semibold">กลับหน้าแผนที่</Link></div>;
   }
 
   const isReturned = post.status === "RETURNED";
+  const isDemo = Boolean(post.demo_seed);
 
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-4">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3"><ChevronLeft className="w-4 h-4" /> ย้อนกลับ</button>
+
+      {isDemo && <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">ประกาศตัวอย่างสำหรับทดสอบระบบ ไม่ใช่เหตุการณ์จริง และไม่เปิดรับการติดต่อหรือแจ้งรับของ</div>}
 
       {isReturned && (
         <div className="mb-4 p-5 rounded-2xl bg-found/10 border border-found/20 text-center animate-fade-in">
@@ -285,15 +288,15 @@ export default function PostDetail() {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            {!isOwner && !isReturned && isFound && (
+            {!isDemo && !isOwner && !isReturned && isFound && (
               <button onClick={() => setShowClaim(true)} className="flex-1 min-w-[140px] px-4 py-3 rounded-full bg-primary text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/90"><HandHeart className="w-4 h-4" /> นี่คือของของฉัน</button>
             )}
-            {!isOwner && !isReturned && (
+            {!isDemo && !isOwner && !isReturned && (
               <button onClick={startChat} className="flex-1 min-w-[120px] px-4 py-3 rounded-full border border-border text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-accent"><MessageSquare className="w-4 h-4" /> ส่งข้อความ</button>
             )}
             <button onClick={toggleSave} className={cn("p-3 rounded-full border", saved ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-accent")}><Bookmark className={cn("w-4 h-4", saved && "fill-current")} /></button>
             <button onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success("คัดลอกลิงก์แล้ว"); }} className="p-3 rounded-full border border-border hover:bg-accent"><Share2 className="w-4 h-4" /></button>
-            {!isOwner && <button onClick={() => setShowReport(true)} className="p-3 rounded-full border border-border hover:bg-accent"><Flag className="w-4 h-4" /></button>}
+            {!isDemo && !isOwner && <button onClick={() => setShowReport(true)} className="p-3 rounded-full border border-border hover:bg-accent"><Flag className="w-4 h-4" /></button>}
           </div>
 
           {isOwner && (post.status === "ARRANGING_RETURN" || post.status === "CLAIM_REQUESTED") && (

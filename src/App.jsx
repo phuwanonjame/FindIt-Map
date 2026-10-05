@@ -9,7 +9,8 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 // Add page imports here
-import Home from '@/pages/HomeDashboard';
+import Home from '@/pages/HomeLanding';
+import HomeDashboard from '@/pages/HomeDashboard';
 import Search from '@/pages/Search';
 import CreatePost from '@/pages/CreatePost';
 import PostDetail from '@/pages/PostDetail';
@@ -48,6 +49,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/map" element={<HomeDashboard />} />
         <Route path="/search" element={<Search />} />
         <Route path="/post/new" element={<CreatePost />} />
         <Route path="/post/:id" element={<PostDetail />} />
