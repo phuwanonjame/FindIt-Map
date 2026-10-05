@@ -14,8 +14,7 @@ import HomeDashboard from '@/pages/HomeDashboard';
 import Search from '@/pages/Search';
 import CreatePost from '@/pages/CreatePost';
 import PostDetail from '@/pages/PostDetail';
-import Messages from '@/pages/Messages';
-import MessageDetail from '@/pages/MessageDetail';
+import Messenger from '@/pages/Messenger';
 import Notifications from '@/pages/Notifications';
 import Profile from '@/pages/Profile';
 import Admin from '@/pages/Admin';
@@ -53,8 +52,8 @@ const AuthenticatedApp = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/post/new" element={<CreatePost />} />
         <Route path="/post/:id" element={<PostDetail />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:id" element={<MessageDetail />} />
+        <Route path="/messages" element={<Messenger />} />
+        <Route path="/messages/:id" element={<Messenger />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<Admin />} />

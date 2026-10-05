@@ -76,7 +76,7 @@ This is a static Vite site, so Cloudflare Pages serves it from its CDN without a
 
 ## Supabase production setup
 
-1. Create a Supabase project, then run [supabase/all-in-one-setup.sql](supabase/all-in-one-setup.sql) in its SQL Editor. After that, run [supabase/chat-security-setup.sql](supabase/chat-security-setup.sql) to make conversations, messages, notifications, and chat attachments private. Existing projects only need the chat security script.
+1. Create a Supabase project, then run [supabase/all-in-one-setup.sql](supabase/all-in-one-setup.sql) in its SQL Editor. After that, run [supabase/chat-security-setup.sql](supabase/chat-security-setup.sql) to make conversations, messages, notifications, and chat attachments private, followed by [supabase/chat-realtime-setup.sql](supabase/chat-realtime-setup.sql) to receive new messages immediately. Existing projects that have already applied chat security only need the realtime script.
 2. Copy `.env.example` to `.env.local` and fill `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY` from the project Connect dialog. Never use the service-role key in the browser.
 3. In Supabase Auth, enable Email provider. The registration screen expects an email OTP; configure email confirmation / OTP delivery in Auth settings. For Google sign-in, enable Google and add your local and production callback URLs.
 
