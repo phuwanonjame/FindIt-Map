@@ -139,6 +139,7 @@ export default function CreatePost() {
       const status = postType === "LOST" ? "SEARCHING" : "WAITING_OWNER";
       const payload = {
         post_type: postType,
+        created_by_name: user?.full_name || user?.email?.split("@")[0] || "ผู้ใช้",
         title: form.title, description: form.description, category: form.category,
         brand: form.brand, model: form.model, color: form.color,
         event_date: form.event_date,
@@ -164,7 +165,7 @@ export default function CreatePost() {
         pet_collar: isPet ? form.pet_collar : "", pet_microchip: isPet ? form.pet_microchip : "",
       };
       const created = await base44.entities.Post.create(payload);
-      await base44.entities.PostEvent.create({ post_id: created.id, event_type: "POST_CREATED", user_id: user?.id, user_name: user?.full_name || "ผู้ใช้", description: postType === "LOST" ? "แจ้งของหาย" : "แจ้งพบของ" });
+      await base44.entities.PostEvent.create({ post_id: created.id, event_type: "POST_CREATED", user_id: user?.id, user_name: payload.created_by_name, description: postType === "LOST" ? "แจ้งของหาย" : "แจ้งพบของ" });
       toast.success("สร้างประกาศสำเร็จ!");
       navigate(`/post/${created.id}`);
     } catch (e) {

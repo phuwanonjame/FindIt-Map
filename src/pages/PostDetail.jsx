@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import {
   ChevronLeft, MapPin, Clock, Share2, Flag, MessageSquare, HandHeart,
-  Check, X, Shield, Award, Phone, MessageCircle, Star, Bookmark, AlertCircle, Navigation
+  Check, X, Shield, Award, MessageCircle, Bookmark
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import StatusBadge, { TypeBadge } from "@/components/StatusBadge";
 import {
-  CATEGORY_MAP, HOLDER_TYPES, getStatusInfo, distanceMeters, formatDistance,
-  timeAgo, maskPhone, REVIEW_TAGS, REPORT_REASONS
+  CATEGORY_MAP, HOLDER_TYPES, distanceMeters, formatDistance,
+  maskPhone, REPORT_REASONS
 } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,6 @@ const pinIcon = (color) => L.divIcon({
   html: `<svg width="36" height="44" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))"><path d="M16 0C7.16 0 0 7.16 0 16c0 11 16 24 16 24s16-13 16-24C32 7.16 24.84 0 16 0z" fill="${color}"/><circle cx="16" cy="16" r="11" fill="white"/></svg>`,
   iconSize: [36, 44], iconAnchor: [18, 44],
 });
-
-function Recenter({ center }) {
-  const map = useMap();
-  useEffect(() => { if (center) map.setView(center, 15); }, [center]);
-  return null;
-}
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -43,7 +37,6 @@ export default function PostDetail() {
   const [showReport, setShowReport] = useState(false);
   const [saved, setSaved] = useState(false);
   const [claimForm, setClaimForm] = useState({ lost_location: "", lost_time: "", verification_answer: "", distinguishing_marks: "", proof_image_url: "" });
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "", tags: [] });
 
   const load = async () => {
     setLoading(true);
@@ -150,10 +143,11 @@ export default function PostDetail() {
       const existing = await base44.entities.Conversation.filter({ post_id: id });
       const mine = existing.find((c) => c.participant_ids?.includes(user.id));
       if (mine) { navigate(`/messages/${mine.id}`); return; }
+      const authorName = post.created_by_name || events.find((event) => event.event_type === "POST_CREATED" && event.user_id === post.created_by_id)?.user_name || (post.post_type === "FOUND" ? "ผู้พบของ" : "ผู้แจ้งของหาย");
       const conv = await base44.entities.Conversation.create({
         post_id: id, post_title: post.title,
         participant_ids: [user.id, post.created_by_id],
-        participant_names: [user.full_name || "ผู้ใช้", post.created_by_id],
+        participant_names: [user.full_name || user.email?.split("@")[0] || "ผู้ใช้", authorName],
       });
       navigate(`/messages/${conv.id}`);
     } catch { toast.error("เปิดแชทไม่สำเร็จ"); }

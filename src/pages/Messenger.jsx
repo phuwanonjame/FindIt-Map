@@ -20,10 +20,18 @@ const shortTime = (value) => {
   if (elapsed < 24 * 60 * 60 * 1000) return `${Math.floor(elapsed / 3600000)} ชั่วโมงที่แล้ว`;
   return `${Math.floor(elapsed / 86400000)} วันที่แล้ว`;
 };
-const otherName = (conversation, userId) => {
+const isUsefulName = (value) => Boolean(value && !["ผู้ใช้", "ผู้ประกาศ"].includes(value) && !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value));
+const otherName = (conversation, userId, post, creatorNames = {}) => {
   const index = conversation.participant_ids?.indexOf(userId) ?? -1;
   const name = conversation.participant_names?.[index === 0 ? 1 : 0];
-  return name && !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(name) ? name : "ผู้ประกาศ";
+  if (isUsefulName(name)) return name;
+  const otherId = conversation.participant_ids?.find((participant) => participant !== userId);
+  if (post?.created_by_id === otherId) {
+    const creatorName = post.created_by_name || creatorNames[post.id];
+    if (isUsefulName(creatorName)) return creatorName;
+    return post.post_type === "FOUND" ? "ผู้พบของ" : "ผู้แจ้งของหาย";
+  }
+  return "ผู้ติดต่อ";
 };
 
 function Avatar({ name, brand = false, size = "h-12 w-12" }) {
@@ -31,16 +39,16 @@ function Avatar({ name, brand = false, size = "h-12 w-12" }) {
   return <span className={cn(size, "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-sky-50 text-lg font-bold text-blue-700")}>{name?.charAt(0).toUpperCase() || "?"}</span>;
 }
 
-function ConversationList({ conversations, posts, unread, user, selectedId, loading, mobileHidden }) {
+function ConversationList({ conversations, posts, creatorNames, unread, user, selectedId, loading, mobileHidden }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const unreadTotal = Object.values(unread).reduce((total, count) => total + count, 0);
   const visible = useMemo(() => conversations.filter((conversation) => {
     const post = posts[conversation.post_id];
-    const matchesSearch = `${otherName(conversation, user.id)} ${conversation.post_title || ""} ${conversation.last_message || ""}`.toLocaleLowerCase().includes(search.toLocaleLowerCase());
+    const matchesSearch = `${otherName(conversation, user.id, post, creatorNames)} ${conversation.post_title || ""} ${conversation.last_message || ""}`.toLocaleLowerCase().includes(search.toLocaleLowerCase());
     return matchesSearch && (filter === "all" || (filter === "unread" && unread[conversation.id]) || post?.post_type === filter);
-  }), [conversations, posts, unread, user.id, search, filter]);
+  }), [conversations, posts, creatorNames, unread, user.id, search, filter]);
 
   return (
     <aside className={cn("flex min-h-0 w-full flex-col overflow-hidden rounded-[20px] border border-[#e5ecf6] bg-white shadow-[0_12px_36px_rgba(25,63,108,0.06)] lg:w-[31.8%] lg:shrink-0", mobileHidden && "hidden lg:flex")}>
@@ -65,7 +73,7 @@ function ConversationList({ conversations, posts, unread, user, selectedId, load
         {loading ? <div className="space-y-2 p-4">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-20 animate-pulse rounded-xl bg-slate-100" />)}</div> : visible.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-slate-500">{search || filter !== "all" ? "ไม่พบแชทที่ตรงกับตัวกรอง" : "ยังไม่มีข้อความ ลองเปิดประกาศแล้วติดต่อเจ้าของได้เลย"}</div>
         ) : visible.map((conversation) => {
-          const name = otherName(conversation, user.id);
+          const name = otherName(conversation, user.id, posts[conversation.post_id], creatorNames);
           const count = unread[conversation.id] || 0;
           return <Link key={conversation.id} to={`/messages/${conversation.id}`} className={cn("flex min-h-[96px] items-center gap-3 border-b border-[#eef2f6] px-5 py-3 transition hover:bg-[#f3f8ff]", selectedId === conversation.id && "bg-[#e9f3ff]")}>
             <Avatar name={name} size="h-14 w-14" />
@@ -84,7 +92,7 @@ function ConversationList({ conversations, posts, unread, user, selectedId, load
   );
 }
 
-function ChatPanel({ conversation, post, user, onRead, mobileVisible }) {
+function ChatPanel({ conversation, post, creatorNames, user, onRead, mobileVisible }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [readMessageIds, setReadMessageIds] = useState(new Set());
@@ -98,7 +106,7 @@ function ChatPanel({ conversation, post, user, onRead, mobileVisible }) {
   const endRef = useRef(null);
   const lastScrolled = useRef(null);
   const conversationId = conversation.id;
-  const contactName = otherName(conversation, user.id);
+  const contactName = otherName(conversation, user.id, post, creatorNames);
 
   const refresh = useCallback(async () => {
     try {
@@ -282,6 +290,7 @@ export default function Messenger() {
   const [conversations, setConversations] = useState([]);
   const [unread, setUnread] = useState({});
   const [posts, setPosts] = useState({});
+  const [creatorNames, setCreatorNames] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -290,6 +299,13 @@ export default function Messenger() {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    base44.entities.PostEvent.filter({ event_type: "POST_CREATED" }).then((events) => {
+      setCreatorNames(Object.fromEntries(events.filter((event) => event.post_id && event.user_name).map((event) => [event.post_id, event.user_name])));
+    }).catch(() => {});
+  }, [user?.id]);
 
   const refresh = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -344,8 +360,8 @@ export default function Messenger() {
   const selected = conversations.find((conversation) => conversation.id === selectedId);
   return <div className="w-full flex-1 bg-[#f2f7fe] px-3 py-4 md:px-6 lg:px-9">
     <div className="mx-auto flex h-[calc(100dvh-164px)] max-w-[1850px] gap-5 lg:h-[calc(100dvh-104px)] lg:min-h-[520px]">
-      <ConversationList conversations={conversations} posts={posts} unread={unread} user={user} selectedId={selectedId} loading={loading} mobileHidden={Boolean(id)} />
-      {selected ? <ChatPanel key={selected.id} conversation={selected} post={posts[selected.post_id]} user={user} onRead={refresh} mobileVisible={Boolean(id)} /> : <div className={cn("flex min-w-0 flex-1 items-center justify-center rounded-[20px] border border-[#e5ecf6] bg-white text-sm text-slate-500", !id && "hidden lg:flex")}>{loading ? "กำลังโหลดแชท..." : "เลือกบทสนทนาหรือเริ่มข้อความใหม่"}</div>}
+      <ConversationList conversations={conversations} posts={posts} creatorNames={creatorNames} unread={unread} user={user} selectedId={selectedId} loading={loading} mobileHidden={Boolean(id)} />
+      {selected ? <ChatPanel key={selected.id} conversation={selected} post={posts[selected.post_id]} creatorNames={creatorNames} user={user} onRead={refresh} mobileVisible={Boolean(id)} /> : <div className={cn("flex min-w-0 flex-1 items-center justify-center rounded-[20px] border border-[#e5ecf6] bg-white text-sm text-slate-500", !id && "hidden lg:flex")}>{loading ? "กำลังโหลดแชท..." : "เลือกบทสนทนาหรือเริ่มข้อความใหม่"}</div>}
     </div>
   </div>;
 }
