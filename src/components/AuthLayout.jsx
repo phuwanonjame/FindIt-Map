@@ -9,7 +9,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           <div className="absolute -bottom-24 -right-10 h-80 w-80 rounded-full bg-blue-600/30 blur-3xl" />
           <div className="relative flex items-center gap-3 text-lg font-bold tracking-tight">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-400 text-slate-950">⌖</span>
-            FindIt Map
+            PobJer
           </div>
           <div className="relative my-auto max-w-md">
             <p className="mb-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-100">COMMUNITY LOST & FOUND</p>
@@ -26,7 +26,7 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-3 lg:hidden">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 font-bold text-cyan-300">⌖</span>
-              <span className="font-bold tracking-tight text-slate-900">FindIt Map</span>
+              <span className="font-bold tracking-tight text-slate-900">PobJer</span>
             </div>
             <div className="mb-8">
               <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-cyan-50 text-cyan-700">

@@ -1,16 +1,16 @@
 {
-  "name": "FindIt Map",
-  "short_name": "FindIt",
+  "name": "PobJer",
+  "short_name": "PobJer",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#10213d",
   "icons": [
     {
-      "src": "/findit-logo.png",
-      "sizes": "1280x1280",
+      "src": "/pobjer-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

@@ -1,4 +1,4 @@
-// Shared constants for FindIt Map
+// Shared constants for PobJer
 
 export const CATEGORIES = [
   { id: "phone", name: "โทรศัพท์", icon: "Smartphone" },
