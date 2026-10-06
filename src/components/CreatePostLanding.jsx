@@ -20,8 +20,11 @@ export default function CreatePostLanding({ onChooseType }) {
     <div className="w-full overflow-hidden bg-[#eaf4ff]">
       <section className="relative isolate min-h-[650px] overflow-hidden bg-[#d7edfc] pb-9 pt-12 sm:pt-14 lg:min-h-[570px] lg:pb-10">
         <img src="/pobjer-hero-bg.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="pointer-events-none absolute bottom-28 -left-16 z-0 h-[330px] w-[380px] opacity-40 sm:bottom-0 sm:left-0 sm:h-[470px] sm:w-[48%] sm:opacity-80 lg:-left-4 lg:h-[96%] lg:w-[45%] lg:opacity-100">
-          <img src="/pobjer-dog.png" alt="" className="h-full w-full object-contain object-bottom" />
+        <div className="pointer-events-none absolute -bottom-2 -left-4 z-0 hidden h-[96%] w-[45%] lg:block">
+          <div className="pobjer-hero-dog absolute bottom-0 left-0 aspect-[3/2] w-full">
+            <img src="/pobjer-dog.png" alt="" className="h-full w-full object-contain" />
+            <span className="pobjer-hero-lens-glint" aria-hidden="true" />
+          </div>
         </div>
 
         <div className="relative mx-auto max-w-[1440px] px-4 sm:px-7">
@@ -32,7 +35,14 @@ export default function CreatePostLanding({ onChooseType }) {
             <p className="mx-auto mt-2 max-w-[660px] text-sm leading-6 text-slate-600 sm:text-base">พื้นที่เล็ก ๆ ที่ช่วยเชื่อมต่อ “คนที่ทำหาย” กับ “คนที่พบเจอ” ให้สิ่งของกลับคืนเจ้าของได้ง่ายขึ้น</p>
           </div>
 
-          <div className="mx-auto mt-8 grid max-w-[930px] gap-4 sm:grid-cols-2 lg:ml-auto lg:mr-[2%] lg:w-[69%]">
+          <div className="pointer-events-none relative mx-auto mt-4 aspect-[3/2] w-full max-w-[420px] sm:max-w-[490px] lg:hidden">
+            <div className="pobjer-hero-dog absolute inset-0">
+              <img src="/pobjer-dog.png" alt="" className="h-full w-full object-contain" />
+              <span className="pobjer-hero-lens-glint" aria-hidden="true" />
+            </div>
+          </div>
+
+          <div className="mx-auto mt-6 grid max-w-[930px] gap-4 sm:grid-cols-2 lg:ml-auto lg:mr-[1%] lg:mt-8 lg:w-[58%]">
             <article className="group flex min-h-[205px] items-start gap-4 rounded-[28px] border border-rose-100 bg-white/90 p-5 shadow-[0_18px_48px_rgba(51,81,116,0.14)] backdrop-blur-md sm:p-6">
               <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 sm:h-20 sm:w-20"><SearchX className="h-9 w-9 sm:h-11 sm:w-11" strokeWidth={1.8} /></span>
               <div className="flex h-full min-w-0 flex-col items-start">

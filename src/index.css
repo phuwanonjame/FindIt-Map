@@ -127,3 +127,40 @@ body,
   max-width: 100%;
   overflow-x: clip;
 }
+
+.pobjer-hero-dog {
+  transform-origin: 70% 85%;
+  animation: pobjer-dog-search 6s ease-in-out infinite;
+}
+
+.pobjer-hero-lens-glint {
+  position: absolute;
+  left: 44.5%;
+  top: 25%;
+  width: 15%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: linear-gradient(120deg, transparent 33%, rgba(255, 255, 255, 0.18) 43%, rgba(255, 255, 255, 0.65) 50%, transparent 58%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: pobjer-lens-shine 6s ease-in-out infinite;
+}
+
+@keyframes pobjer-dog-search {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-5px) rotate(-0.7deg); }
+  65% { transform: translateY(1px) rotate(0.6deg); }
+}
+
+@keyframes pobjer-lens-shine {
+  0%, 25%, 75%, 100% { opacity: 0; transform: translateX(-12%); }
+  45% { opacity: 0.8; transform: translateX(10%); }
+  58% { opacity: 0.25; transform: translateX(16%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pobjer-hero-dog,
+  .pobjer-hero-lens-glint {
+    animation: none;
+  }
+}
