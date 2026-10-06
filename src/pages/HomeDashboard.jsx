@@ -11,8 +11,8 @@ import MapView from "@/components/MapView";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import { distanceMeters, formatDistance } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { canSearchPlace, searchThaiPlaces } from "@/lib/placeSearch";
 
-const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 const closed = (post) => post.status === "RETURNED" || post.status === "CLOSED";
 const coords = (post) => [Number(post.public_latitude ?? post.latitude), Number(post.public_longitude ?? post.longitude)];
 const hasCoords = (post) => coords(post).every(Number.isFinite);
@@ -98,19 +98,15 @@ export default function HomeDashboard() {
 
   useEffect(() => {
     const query = search.trim();
-    if (!GEOAPIFY_KEY || query.length < 3 || selectedPlace?.label === query) {
+    if (!canSearchPlace(query) || selectedPlace?.label === query) {
       setPlaceSuggestions([]);
       return undefined;
     }
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ text: query, format: "json", limit: "5", filter: "countrycode:th", apiKey: GEOAPIFY_KEY });
-        if (userPos) params.set("bias", `proximity:${userPos[1]},${userPos[0]}`);
-        const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?${params}`, { signal: controller.signal });
-        if (!response.ok) throw new Error("search failed");
-        const data = await response.json();
-        if (!controller.signal.aborted) setPlaceSuggestions(data.results || []);
+        const results = await searchThaiPlaces(query, { position: userPos, signal: controller.signal });
+        if (!controller.signal.aborted) setPlaceSuggestions(results);
       } catch (error) { if (error.name !== "AbortError") setPlaceSuggestions([]); }
     }, 400);
     return () => { window.clearTimeout(timeout); controller.abort(); };

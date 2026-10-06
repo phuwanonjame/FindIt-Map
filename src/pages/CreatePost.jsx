@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, X, MapPin, Navigation, Check, AlertCircle, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { CATEGORIES, LOCATION_PRIVACY, HOLDER_TYPES, BANGKOK_CENTER } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import CreatePostLanding from "@/components/CreatePostLanding";
+import MapTiles from "@/components/MapTiles";
 import { cn } from "@/lib/utils";
+import { canSearchPlace, searchThaiPlaces } from "@/lib/placeSearch";
 import { toast } from "react-hot-toast";
 
 const pickerIcon = L.divIcon({
@@ -18,39 +20,68 @@ const pickerIcon = L.divIcon({
   iconAnchor: [18, 44],
 });
 
-function LocationPicker({ position, setPosition }) {
+function LocationPicker({ position, center, setPosition, onPlaceSelect }) {
   const [search, setSearch] = useState("");
+  const [selectedSearch, setSelectedSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const map = useMapEvents({
     click(e) { setPosition([e.latlng.lat, e.latlng.lng]); },
   });
 
   useEffect(() => {
-    if (position) map.setView(position, 15);
-  }, [position]);
+    if (position || center) map.setView(position || center, 15);
+  }, [map, position?.[0], position?.[1], center?.[0], center?.[1]]);
 
-  const searchPlace = async () => {
-    if (!search.trim()) return;
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}&limit=1`);
-      const data = await res.json();
-      if (data[0]) {
-        const pos = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-        setPosition(pos);
-        map.setView(pos, 15);
+  useEffect(() => {
+    if (!canSearchPlace(search) || search === selectedSearch) { setSuggestions([]); setSearchError(""); return undefined; }
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSearching(true);
+      setSearchError("");
+      try {
+        const results = await searchThaiPlaces(search, { position: position || center, signal: controller.signal });
+        if (!controller.signal.aborted) {
+          setSuggestions(results);
+          if (!results.length) setSearchError("ไม่พบสถานที่ ลองคำค้นอื่นหรือปักหมุดบนแผนที่");
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") setSearchError("ค้นหาสถานที่ไม่สำเร็จ ลองอีกครั้งหรือปักหมุดบนแผนที่");
+      } finally {
+        if (!controller.signal.aborted) setSearching(false);
       }
-    } catch {}
+    }, 400);
+    return () => { window.clearTimeout(timeout); controller.abort(); };
+  }, [search, selectedSearch, position?.[0], position?.[1], center?.[0], center?.[1]]);
+
+  const choosePlace = (place) => {
+    onPlaceSelect(place);
+    setSearch(place.formatted);
+    setSelectedSearch(place.formatted);
+    setSuggestions([]);
+    setSearchError("");
   };
 
   return (
-    <div className="absolute top-3 left-3 right-3 z-[1000] flex gap-2">
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), searchPlace())}
-        placeholder="ค้นหาสถานที่..."
-        className="flex-1 px-3.5 py-2 rounded-full bg-card border border-border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-      />
-      <button onClick={searchPlace} className="px-3.5 rounded-full bg-primary text-white text-sm font-semibold shadow-sm">ค้นหา</button>
+    <div className="absolute left-3 right-3 top-3 z-[1000]" onClick={(event) => event.stopPropagation()}>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <input
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setSelectedSearch(""); setSuggestions([]); }}
+          onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); if (suggestions[0]) choosePlace(suggestions[0]); } }}
+          placeholder="ค้นหาสถานที่ เช่น สยามพารากอน"
+          aria-label="ค้นหาสถานที่"
+          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm shadow-md outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        />
+        {searching && <span className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />}
+      </div>
+      {suggestions.length > 0 && <div className="mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+        {suggestions.map((place) => <button key={`${place.place_id}-${place.lat}-${place.lon}`} type="button" onClick={() => choosePlace(place)} className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-blue-50"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" /><span>{place.formatted}</span></button>)}
+        <p className="border-t px-3 py-1.5 text-[11px] text-slate-500">สถานที่โดย Geoapify © OpenStreetMap contributors</p>
+      </div>}
+      {searchError && !suggestions.length && <p className="mt-1 rounded-xl bg-white px-3 py-2 text-xs text-slate-600 shadow-md" role="status">{searchError}</p>}
     </div>
   );
 }
@@ -65,6 +96,9 @@ export default function CreatePost() {
   });
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [userPosition, setUserPosition] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle");
+  const locationRequested = useRef(false);
   const [form, setForm] = useState({
     category: "", title: "", description: "",
     brand: "", model: "", color: "",
@@ -108,12 +142,26 @@ export default function CreatePost() {
     update("images", arr);
   };
 
-  const useCurrentLocation = () => {
-    navigator.geolocation?.getCurrentPosition((pos) => {
-      update("latitude", pos.coords.latitude);
-      update("longitude", pos.coords.longitude);
-    });
+  const requestCurrentLocation = (selectAsPostLocation = false) => {
+    if (!navigator.geolocation) { setLocationStatus("unsupported"); return; }
+    if (selectAsPostLocation && userPosition) {
+      setForm((current) => ({ ...current, latitude: userPosition[0], longitude: userPosition[1] }));
+      return;
+    }
+    setLocationStatus("requesting");
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const position = [pos.coords.latitude, pos.coords.longitude];
+      setUserPosition(position);
+      setLocationStatus("granted");
+      if (selectAsPostLocation) setForm((current) => ({ ...current, latitude: position[0], longitude: position[1] }));
+    }, () => setLocationStatus("denied"), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   };
+
+  useEffect(() => {
+    if (step !== 3 || locationRequested.current) return;
+    locationRequested.current = true;
+    requestCurrentLocation();
+  }, [step]);
 
   const computePublicCoords = () => {
     if (!form.latitude) return {};
@@ -330,13 +378,14 @@ export default function CreatePost() {
             <div>
               <label className="text-sm font-semibold mb-1.5 block">{postType === "LOST" ? "จุดที่คาดว่าทำหาย" : "จุดที่พบของ"}</label>
               <div className="relative rounded-2xl overflow-hidden border border-border" style={{ height: 320 }}>
-                <MapContainer center={form.latitude ? [form.latitude, form.longitude] : BANGKOK_CENTER} zoom={13} style={{ height: "100%", width: "100%" }}>
-                  <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}" attribution="Tiles &copy; Esri" />
-                  <LocationPicker position={form.latitude ? [form.latitude, form.longitude] : null} setPosition={(pos) => { update("latitude", pos[0]); update("longitude", pos[1]); }} />
+                <MapContainer center={userPosition || BANGKOK_CENTER} zoom={13} style={{ height: "100%", width: "100%" }}>
+                  <MapTiles />
+                  <LocationPicker position={form.latitude != null ? [form.latitude, form.longitude] : null} center={userPosition} setPosition={(pos) => setForm((current) => ({ ...current, latitude: pos[0], longitude: pos[1] }))} onPlaceSelect={(place) => setForm((current) => ({ ...current, latitude: Number(place.lat), longitude: Number(place.lon), place_name: place.formatted }))} />
                   {form.latitude && <Marker position={[form.latitude, form.longitude]} icon={pickerIcon} />}
                 </MapContainer>
               </div>
-              <button onClick={useCurrentLocation} className="w-full mt-2 px-3 py-2 rounded-xl bg-primary/10 text-primary border border-primary/20 text-sm font-semibold flex items-center justify-center gap-1.5"><Navigation className="w-4 h-4" /> ใช้ตำแหน่งปัจจุบัน</button>
+              <p role="status" className="mt-2 text-xs text-muted-foreground">{locationStatus === "requesting" ? "กำลังขอสิทธิ์ตำแหน่งเพื่อแสดงแผนที่ใกล้คุณ..." : locationStatus === "denied" ? "ไม่ได้รับสิทธิ์ GPS คุณยังค้นหาสถานที่หรือปักหมุดเองได้" : locationStatus === "unsupported" ? "อุปกรณ์นี้ไม่รองรับ GPS คุณยังค้นหาสถานที่หรือปักหมุดเองได้" : "แผนที่เริ่มจากตำแหน่งปัจจุบัน กรุณาเลือกจุดที่ทำหายหรือพบของจริงก่อนดำเนินการต่อ"}</p>
+              <button type="button" onClick={() => requestCurrentLocation(true)} className="w-full mt-2 px-3 py-2 rounded-xl bg-primary/10 text-primary border border-primary/20 text-sm font-semibold flex items-center justify-center gap-1.5"><Navigation className="w-4 h-4" /> ใช้ตำแหน่งปัจจุบันเป็นจุดประกาศ</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <input value={form.place_name} onChange={(e) => update("place_name", e.target.value)} placeholder="ชื่อสถานที่ เช่น Central Ladprao" className="px-3 py-2 rounded-xl bg-accent border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />

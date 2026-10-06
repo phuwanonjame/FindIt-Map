@@ -4,9 +4,9 @@ import { Search, SlidersHorizontal, MapPin, Navigation, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import MapView from "@/components/MapView";
 import PostCard from "@/components/PostCard";
-import { CATEGORIES, distanceMeters, formatDistance, timeAgo, CATEGORY_MAP } from "@/lib/constants";
-import { Image as Img } from "@/components/ui/image";
+import { CATEGORIES, distanceMeters } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { canSearchPlace, searchThaiPlaces } from "@/lib/placeSearch";
 
 const TYPE_FILTERS = [
   { value: "ALL", label: "ทั้งหมด" },
@@ -30,8 +30,6 @@ const DISTANCE_FILTERS = [
   { value: 5000, label: "5 กม." },
   { value: 10000, label: "10 กม." },
 ];
-
-const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
 function SkeletonCard() {
   return (
@@ -74,7 +72,7 @@ export default function Home() {
 
   useEffect(() => {
     const query = search.trim();
-    if (!GEOAPIFY_KEY || query.length < 3 || query === selectedPlaceLabel) {
+    if (!canSearchPlace(query) || query === selectedPlaceLabel) {
       setPlaceSuggestions([]);
       return undefined;
     }
@@ -83,18 +81,8 @@ export default function Home() {
     const timer = window.setTimeout(async () => {
       setPlaceLoading(true);
       try {
-        const params = new URLSearchParams({
-          text: query,
-          format: "json",
-          limit: "5",
-          filter: "countrycode:th",
-          apiKey: GEOAPIFY_KEY,
-        });
-        if (userPos) params.set("bias", `proximity:${userPos[1]},${userPos[0]}`);
-        const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?${params}`, { signal: controller.signal });
-        if (!response.ok) throw new Error("Place search failed");
-        const data = await response.json();
-        setPlaceSuggestions(data.results || []);
+        const results = await searchThaiPlaces(query, { position: userPos, signal: controller.signal });
+        setPlaceSuggestions(results);
       } catch (error) {
         if (error.name !== "AbortError") setPlaceSuggestions([]);
       } finally {

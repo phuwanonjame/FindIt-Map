@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, Marker } from "react-leaflet";
 import L from "leaflet";
 import {
   ChevronLeft, MapPin, Clock, Share2, Flag, MessageSquare, HandHeart,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/constants";
 import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
+import MapTiles from "@/components/MapTiles";
 import { toast } from "react-hot-toast";
 
 const pinIcon = (color) => L.divIcon({
@@ -271,7 +272,7 @@ export default function PostDetail() {
           {post.public_latitude && (
             <div className="mb-4 rounded-2xl overflow-hidden border border-border" style={{ height: 180 }}>
               <MapContainer center={[post.public_latitude, post.public_longitude]} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={false} scrollWheelZoom={false}>
-                <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}" attribution="Tiles &copy; Esri" />
+                <MapTiles />
                 <Marker position={[post.public_latitude, post.public_longitude]} icon={pinIcon(isFound ? "#16A34A" : "#DC2626")} />
               </MapContainer>
             </div>

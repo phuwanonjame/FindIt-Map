@@ -10,7 +10,7 @@ export default function Login() {
   const location = useLocation();
   const requestedNext = new URLSearchParams(location.search).get("next");
   const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => location.state?.email || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ export default function Login() {
           {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
           <form onSubmit={signIn} className="space-y-5">
             <label className="block"><span className="mb-2 block text-sm font-semibold">อีเมล</span><span className="relative block"><Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="email" autoComplete="email" autoFocus placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></span></label>
-            <label className="block"><span className="mb-2 flex items-center justify-between text-sm font-semibold">รหัสผ่าน <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700">ลืมรหัสผ่าน?</Link></span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} required /></span></label>
+            <label className="block"><span className="mb-2 flex items-center justify-between text-sm font-semibold">รหัสผ่าน <Link to="/forgot-password" state={{ email }} className="font-medium text-blue-600 hover:text-blue-700">ลืมรหัสผ่าน?</Link></span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} required /></span></label>
             <button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}{loading ? "กำลังเข้าสู่ระบบ" : "เข้าสู่ระบบ"}</button>
           </form>
           <div className="my-7 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />หรือ<span className="h-px flex-1 bg-slate-200" /></div>

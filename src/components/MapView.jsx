@@ -1,8 +1,9 @@
 import React from "react";
-import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, Circle, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { CATEGORY_MAP, getStatusInfo, timeAgo } from "@/lib/constants";
+import { getStatusInfo, timeAgo } from "@/lib/constants";
+import MapTiles from "@/components/MapTiles";
 
 // Leaflet measures its parent only when it is created. The map is also used in
 // responsive cards and view toggles, so recalculate after layout changes to
@@ -109,10 +110,7 @@ export default function MapView({ posts = [], center, focusZoom, focusedPlace, u
       preferCanvas
     >
       <MapSizeSync />
-      <TileLayer
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>'
-      />
+      <MapTiles />
       <Recenter center={center} zoom={focusZoom} />
       <FitPostMarkers posts={markers} skip={Boolean(center)} />
       <PlaceFocusMarker place={focusedPlace} />
@@ -168,4 +166,3 @@ export default function MapView({ posts = [], center, focusZoom, focusedPlace, u
     </MapContainer>
   );
 }
-import { useEffect } from "react";
