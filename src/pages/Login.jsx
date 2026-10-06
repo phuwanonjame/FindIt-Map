@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail } from "lucide-react";
 import { base44 as appClient } from "@/api/supabaseAdapter";
@@ -9,7 +9,10 @@ const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-white px-1
 export default function Login() {
   const location = useLocation();
   const requestedNext = new URLSearchParams(location.search).get("next");
-  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") && !requestedNext.includes("\\") ? requestedNext : "/";
+  useEffect(() => {
+    if (nextPath !== "/") window.sessionStorage.setItem("pobjer:auth-next", nextPath);
+  }, [nextPath]);
   const [email, setEmail] = useState(() => location.state?.email || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

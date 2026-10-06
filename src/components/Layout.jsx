@@ -4,6 +4,7 @@ import { House, Map as MapIcon, Search, MessageSquare, User, Bell, Menu, X, LogI
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
+import FloodBanner from "@/components/FloodBanner";
 
 const NAV = [
   { to: "/", label: "หน้าแรก", icon: House },
@@ -76,11 +77,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-[#f7faff] flex flex-col">
+      <FloodBanner />
       <header className="sticky top-0 z-40 border-b border-[#e5ebf3] bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between gap-4 px-4 lg:px-7">
           <Link to="/" className="flex shrink-0 items-center gap-2.5">
             <img src="/pobjer-icon.png" alt="PobJer" className="h-11 w-11 object-contain" />
-            <span><span className="block text-[21px] font-extrabold leading-tight tracking-tight text-[#0b1c43]">Pob<span className="text-blue-600">Jer</span></span><span className="hidden text-[10px] leading-tight text-slate-500 sm:block">เจอของหาย ให้กลับมาหาเจ้าของ</span></span>
+            <span><span className="block text-[21px] font-extrabold leading-tight tracking-tight text-[#0b1c43]"><span className="text-blue-600">Pob</span>Jer</span><span className="hidden text-[10px] leading-tight text-slate-500 sm:block">เจอของหาย ให้กลับมาหาเจ้าของ</span></span>
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">

@@ -11,6 +11,7 @@ import CreatePostLanding from "@/components/CreatePostLanding";
 import MapTiles from "@/components/MapTiles";
 import { cn } from "@/lib/utils";
 import { canSearchPlace, searchThaiPlaces } from "@/lib/placeSearch";
+import { clearPostDraft, loadPostDraft, savePostDraft } from "@/lib/postDraft";
 import { toast } from "react-hot-toast";
 
 const pickerIcon = L.divIcon({
@@ -89,13 +90,17 @@ function LocationPicker({ position, center, setPosition, onPlaceSelect }) {
 export default function CreatePost() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
   const [postType, setPostType] = useState(() => {
     const requestedType = searchParams.get("type");
     return requestedType === "LOST" || requestedType === "FOUND" ? requestedType : null;
   });
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [imageItems, setImageItems] = useState([]);
+  const imageItemsRef = useRef([]);
+  const resumeDraft = searchParams.get("resume") === "1";
+  const [restoringDraft, setRestoringDraft] = useState(resumeDraft);
   const [userPosition, setUserPosition] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
   const locationRequested = useRef(false);
@@ -107,7 +112,6 @@ export default function CreatePost() {
     latitude: null, longitude: null,
     place_name: "", landmark: "",
     location_privacy: "APPROX_100M",
-    images: [],
     reward_enabled: false, reward_text: "",
     current_holder_type: "WITH_FINDER",
     holder_name: "", holder_role: "", holder_phone: "", holder_line_id: "",
@@ -117,29 +121,55 @@ export default function CreatePost() {
     pet_name: "", pet_species: "", pet_breed: "", pet_gender: "", pet_collar: "", pet_microchip: "",
   });
 
-  useEffect(() => { if (postType && !user) navigate("/login"); }, [postType, user, navigate]);
+  useEffect(() => { imageItemsRef.current = imageItems; }, [imageItems]);
+  useEffect(() => () => { imageItemsRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl)); }, []);
+
+  useEffect(() => {
+    if (!resumeDraft) return undefined;
+    let active = true;
+    loadPostDraft().then((draft) => {
+      if (!active) return;
+      if (draft && (draft.postType === "LOST" || draft.postType === "FOUND")) {
+        setPostType(draft.postType);
+        setStep(Math.max(0, Math.min(5, Number(draft.step) || 0)));
+        setForm((current) => ({ ...current, ...draft.form }));
+        setImageItems((draft.files || []).map(({ blob, name, type, lastModified }) => {
+          const file = new File([blob], name, { type, lastModified });
+          return { file, previewUrl: URL.createObjectURL(file) };
+        }));
+      } else {
+        toast.error("ไม่พบร่างประกาศ หรือร่างหมดอายุแล้ว");
+      }
+    }).catch(() => toast.error("ไม่สามารถคืนร่างประกาศได้ กรุณาลองอีกครั้ง"))
+      .finally(() => { if (active) setRestoringDraft(false); });
+    return () => { active = false; };
+  }, [resumeDraft]);
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleFiles = async (files) => {
-    const remaining = 5 - form.images.length;
-    const toUpload = Array.from(files).slice(0, remaining);
-    for (const file of toUpload) {
-      if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name} ใหญ่เกิน 10MB`); continue; }
-      try {
-        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-        update("images", [...form.images, file_uri]);
-      } catch { toast.error("อัปโหลดรูปไม่สำเร็จ"); }
-    }
+  const handleFiles = (files) => {
+    const remaining = 5 - imageItems.length;
+    const selected = Array.from(files).slice(0, remaining);
+    const accepted = selected.filter((file) => {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { toast.error(`${file.name} ไม่ใช่ JPG, PNG หรือ WebP`); return false; }
+      if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name} ใหญ่เกิน 10MB`); return false; }
+      return true;
+    });
+    setImageItems((current) => [...current, ...accepted.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))]);
   };
 
-  const removeImage = (i) => update("images", form.images.filter((_, idx) => idx !== i));
+  const removeImage = (i) => setImageItems((current) => {
+    URL.revokeObjectURL(current[i].previewUrl);
+    return current.filter((_, index) => index !== i);
+  });
   const moveImage = (i, dir) => {
-    const arr = [...form.images];
     const j = i + dir;
-    if (j < 0 || j >= arr.length) return;
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-    update("images", arr);
+    setImageItems((current) => {
+      if (j < 0 || j >= current.length) return current;
+      const reordered = [...current];
+      [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+      return reordered;
+    });
   };
 
   const requestCurrentLocation = (selectAsPostLocation = false) => {
@@ -179,9 +209,19 @@ export default function CreatePost() {
   };
 
   const submit = async () => {
-    if (submitting) return;
+    if (submitting || isLoadingAuth) return;
     setSubmitting(true);
     try {
+      if (!user) {
+        await savePostDraft({ postType, step, form, files: imageItems.map(({ file }) => file) });
+        navigate(`/login?next=${encodeURIComponent("/post/new?resume=1")}`);
+        return;
+      }
+      const uploadedImages = [];
+      for (const { file } of imageItems) {
+        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
+        uploadedImages.push(file_uri);
+      }
       const pub = computePublicCoords();
       const isPet = form.category === "pet";
       const status = postType === "LOST" ? "SEARCHING" : "WAITING_OWNER";
@@ -199,7 +239,7 @@ export default function CreatePost() {
         location_privacy: form.location_privacy,
         status,
         reward_enabled: form.reward_enabled, reward_text: form.reward_text,
-        images: form.images,
+        images: uploadedImages,
         verification_note: postType === "FOUND" ? form.verification_note : "",
         contact_chat: form.contact_chat, contact_phone: form.contact_phone,
         contact_line: form.contact_line, contact_email: form.contact_email,
@@ -214,6 +254,7 @@ export default function CreatePost() {
       };
       const created = await base44.entities.Post.create(payload);
       await base44.entities.PostEvent.create({ post_id: created.id, event_type: "POST_CREATED", user_id: user?.id, user_name: payload.created_by_name, description: postType === "LOST" ? "แจ้งของหาย" : "แจ้งพบของ" });
+      await clearPostDraft().catch(() => {});
       toast.success("สร้างประกาศสำเร็จ!");
       navigate(`/post/${created.id}`);
     } catch (e) {
@@ -222,6 +263,10 @@ export default function CreatePost() {
       setSubmitting(false);
     }
   };
+
+  if (restoringDraft || (resumeDraft && isLoadingAuth)) {
+    return <div role="status" className="grid min-h-[50dvh] place-items-center text-sm text-muted-foreground">กำลังคืนร่างประกาศ...</div>;
+  }
 
   if (!postType) {
     return <CreatePostLanding onChooseType={setPostType} />;
@@ -318,19 +363,19 @@ export default function CreatePost() {
               <label className="block border-2 border-dashed border-border rounded-2xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition">
                 <ImagePlus className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm font-medium">แตะเพื่อเลือกรูป</p>
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
               </label>
             </div>
-            {form.images.length > 0 && (
+            {imageItems.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
-                {form.images.map((img, i) => (
+                {imageItems.map(({ previewUrl }, i) => (
                   <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-border">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={previewUrl} alt="" className="w-full h-full object-cover" />
                     {i === 0 && <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-white text-[10px] font-bold">หลัก</span>}
                     <button onClick={() => removeImage(i)} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"><X className="w-3.5 h-3.5" /></button>
                     <div className="absolute bottom-1 inset-x-1 flex justify-between opacity-0 group-hover:opacity-100 transition">
                       <button onClick={() => moveImage(i, -1)} disabled={i === 0} className="w-6 h-6 rounded-full bg-white/90 text-xs disabled:opacity-30">←</button>
-                      <button onClick={() => moveImage(i, 1)} disabled={i === form.images.length - 1} className="w-6 h-6 rounded-full bg-white/90 text-xs disabled:opacity-30">→</button>
+                      <button onClick={() => moveImage(i, 1)} disabled={i === imageItems.length - 1} className="w-6 h-6 rounded-full bg-white/90 text-xs disabled:opacity-30">→</button>
                     </div>
                   </div>
                 ))}
@@ -493,7 +538,7 @@ export default function CreatePost() {
         {step < steps.length - 1 ? (
           <button onClick={() => setStep(step + 1)} disabled={!canNext()} className="flex-1 px-5 py-3 rounded-full bg-primary text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">ถัดไป <ChevronRight className="w-4 h-4" /></button>
         ) : (
-          <button onClick={submit} disabled={submitting} className="flex-1 px-5 py-3 rounded-full bg-primary text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">{submitting ? "กำลังสร้าง..." : "สร้างประกาศ"} <Check className="w-4 h-4" /></button>
+          <button onClick={submit} disabled={submitting} className="flex-1 px-5 py-3 rounded-full bg-primary text-white text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1.5">{submitting ? (user ? "กำลังสร้าง..." : "กำลังเก็บร่าง...") : (user ? "สร้างประกาศ" : "เข้าสู่ระบบเพื่อสร้างประกาศ")} <Check className="w-4 h-4" /></button>
         )}
       </div>
     </div>

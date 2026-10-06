@@ -17,7 +17,7 @@ import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
 import MapTiles from "@/components/MapTiles";
 import { toast } from "sonner";
-import { FaFacebookF, FaInstagram } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaLine } from "react-icons/fa";
 
 const pinIcon = (color) => L.divIcon({
   className: "findit-pin",
@@ -323,9 +323,10 @@ export default function PostDetail() {
             <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
               <div className="mb-4 flex items-center justify-between gap-3"><h2 id="share-dialog-title" className="text-lg font-bold">แชร์ประกาศ</h2><button type="button" onClick={() => setShowShare(false)} aria-label="ปิด" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
               <p className="mb-3 text-sm text-slate-600">ส่งลิงก์ประกาศ “{post.title}” ให้คนอื่นช่วยตามหา</p>
-              <div className="mb-5 grid grid-cols-3 gap-2">
+              <div className="mb-5 grid grid-cols-4 gap-2">
                 <button type="button" onClick={() => copyShareLink()} className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-600"><Copy className="h-5 w-5" /></span>คัดลอกลิงก์</button>
                 <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#1877f2] text-white"><FaFacebookF className="h-5 w-5" /></span>Facebook</a>
+                <a href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label="แชร์ประกาศผ่าน LINE" className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#06c755] text-white"><FaLine className="h-6 w-6" /></span>LINE</a>
                 <button type="button" onClick={() => copyShareLink(true)} className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-violet-600 text-white"><FaInstagram className="h-5 w-5" /></span>Instagram</button>
               </div>
               <label htmlFor="share-url" className="mb-2 block text-sm font-semibold">ลิงก์ประกาศ</label>

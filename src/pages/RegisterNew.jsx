@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import { base44 as appClient } from "@/api/supabaseAdapter";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -11,6 +11,9 @@ function SidePanel() {
 }
 
 export default function RegisterNew() {
+  const location = useLocation();
+  const requestedNext = new URLSearchParams(location.search).get("next") || window.sessionStorage.getItem("pobjer:auth-next");
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") && !requestedNext.includes("\\") ? requestedNext : "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,7 +31,10 @@ export default function RegisterNew() {
       const result = await appClient.auth.register({ email, password });
       // Supabase returns a session immediately when email confirmation is off.
       // In that mode there is no OTP email to wait for.
-      if (result.session) window.location.assign("/");
+      if (result.session) {
+        window.sessionStorage.removeItem("pobjer:auth-next");
+        window.location.assign(nextPath);
+      }
       else setVerifyMode(true);
     }
     catch (err) { setError(err.message || "ไม่สามารถสร้างบัญชีได้"); }
@@ -36,13 +42,16 @@ export default function RegisterNew() {
   };
   const verify = async (event) => {
     event.preventDefault(); setError(""); setLoading(true);
-    try { await appClient.auth.verifyOtp({ email, otpCode: otp }); window.location.assign("/"); }
+    try { await appClient.auth.verifyOtp({ email, otpCode: otp }); window.sessionStorage.removeItem("pobjer:auth-next"); window.location.assign(nextPath); }
     catch (err) { setError(err.message || "รหัสยืนยันไม่ถูกต้อง"); setLoading(false); }
   };
   const google = async () => {
     setError(""); setLoading(true);
-    try { await appClient.auth.loginWithProvider("google", window.location.origin); }
-    catch (err) { setError(err.message || "ไม่สามารถสมัครด้วย Google ได้"); setLoading(false); }
+    try {
+      if (nextPath !== "/") window.sessionStorage.setItem("pobjer:auth-next", nextPath);
+      await appClient.auth.loginWithProvider("google", window.location.origin);
+    }
+    catch (err) { window.sessionStorage.removeItem("pobjer:auth-next"); setError(err.message || "ไม่สามารถสมัครด้วย Google ได้"); setLoading(false); }
   };
   const resend = async () => { try { await appClient.auth.resendOtp(email); } catch (err) { setError(err.message || "ไม่สามารถส่งรหัสใหม่ได้"); } };
 
