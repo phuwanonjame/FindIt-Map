@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { House, Map as MapIcon, Search, MessageSquare, User, Bell, Menu, X, LogIn, LogOut, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
@@ -24,6 +24,31 @@ export default function Layout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const userMenuRef = useRef(null);
+  const userMenuButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+    const closeOutside = (event) => {
+      if (!userMenuRef.current?.contains(event.target)) setUserMenuOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setUserMenuOpen(false);
+        userMenuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [userMenuOpen]);
+
+  useEffect(() => {
+    setUserMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user) { setUnreadCount(0); setUnreadMessages(0); return undefined; }
@@ -76,8 +101,8 @@ export default function Layout() {
               {unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </Link>
             {user ? (
-              <div className="relative">
-                <button type="button" onClick={() => setUserMenuOpen((open) => !open)} className={cn("flex items-center gap-1 rounded-full p-0.5 transition hover:bg-accent", location.pathname === "/profile" && "ring-2 ring-blue-500 ring-offset-2")} aria-label="เปิดเมนูผู้ใช้" aria-expanded={userMenuOpen}>
+              <div ref={userMenuRef} className="relative">
+                <button ref={userMenuButtonRef} type="button" onClick={() => setUserMenuOpen((open) => !open)} className={cn("flex items-center gap-1 rounded-full p-0.5 transition hover:bg-accent", location.pathname === "/profile" && "ring-2 ring-blue-500 ring-offset-2")} aria-label="เปิดเมนูผู้ใช้" aria-expanded={userMenuOpen}>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{(user.full_name || user.email || "U").charAt(0).toUpperCase()}</span>
                   <ChevronDown className={cn("hidden h-4 w-4 text-muted-foreground transition md:block", userMenuOpen && "rotate-180")} />
                 </button>
