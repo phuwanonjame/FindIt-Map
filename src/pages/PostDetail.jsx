@@ -145,7 +145,7 @@ export default function PostDetail() {
       if (mine) { navigate(`/messages/${mine.id}`); return; }
       const authorName = post.created_by_name || events.find((event) => event.event_type === "POST_CREATED" && event.user_id === post.created_by_id)?.user_name || (post.post_type === "FOUND" ? "ผู้พบของ" : "ผู้แจ้งของหาย");
       const conv = await base44.entities.Conversation.create({
-        post_id: id, post_title: post.title,
+        post_id: id, post_title: post.title, post_type: post.post_type,
         participant_ids: [user.id, post.created_by_id],
         participant_names: [user.full_name || user.email?.split("@")[0] || "ผู้ใช้", authorName],
       });

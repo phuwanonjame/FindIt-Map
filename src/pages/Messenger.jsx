@@ -35,6 +35,30 @@ const otherName = (conversation, userId, post, creatorNames = {}) => {
   return "ผู้ติดต่อ";
 };
 
+const getSuggestedMessages = (postType, title, isPostOwner) => {
+  const item = title ? ` “${title}”` : "นี้";
+  if (isPostOwner) return [
+    `สวัสดีครับ/ค่ะ ขอบคุณที่ติดต่อเกี่ยวกับประกาศ${item} ช่วยเล่ารายละเอียดเพิ่มเติมได้ไหม`,
+    "ช่วยส่งรูปหรือรายละเอียดเพิ่มเติมเพื่อให้ตรวจสอบได้ไหม",
+    "หากข้อมูลตรงกัน เราคุยเรื่องสถานที่และเวลารับคืนกันได้เลย",
+  ];
+  if (postType === "FOUND") return [
+    `สวัสดีครับ/ค่ะ สิ่งของในประกาศ${item} อาจเป็นของฉัน ขอสอบถามรายละเอียดเพิ่มเติมได้ไหม`,
+    "ฉันมีรูปหรือรายละเอียดที่ช่วยยืนยันความเป็นเจ้าของ ขอส่งให้ตรวจสอบได้ไหม",
+    "หากตรวจสอบตรงกัน สะดวกนัดรับคืนอย่างไรครับ/คะ",
+  ];
+  if (postType === "LOST") return [
+    `สวัสดีครับ/ค่ะ ฉันอาจพบของตามประกาศ${item} ขอส่งรายละเอียดให้ตรวจสอบได้ไหม`,
+    "ฉันมีรูปของที่พบ สามารถส่งให้ช่วยตรวจสอบได้ไหม",
+    "หากเป็นของคุณ สะดวกนัดรับคืนอย่างไรครับ/คะ",
+  ];
+  return [
+    `สวัสดีครับ/ค่ะ ฉันต้องการสอบถามเกี่ยวกับประกาศ${item}`,
+    "ช่วยแจ้งรายละเอียดเพิ่มเติมเกี่ยวกับของชิ้นนี้ได้ไหม",
+    "สะดวกคุยเรื่องการตรวจสอบและส่งคืนของอย่างไรครับ/คะ",
+  ];
+};
+
 function Avatar({ name, brand = false, size = "h-12 w-12" }) {
   if (brand) return <img src="/pobjer-icon.png" alt="" className={cn(size, "shrink-0 rounded-full object-cover")} />;
   return <span className={cn(size, "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-sky-50 text-lg font-bold text-blue-700")}>{name?.charAt(0).toUpperCase() || "?"}</span>;
@@ -104,10 +128,15 @@ function ChatPanel({ conversation, post, creatorNames, user, onRead, mobileVisib
   const [loading, setLoading] = useState(true);
   const fileInput = useRef(null);
   const cameraInput = useRef(null);
+  const messageInput = useRef(null);
   const endRef = useRef(null);
   const lastScrolled = useRef(null);
   const conversationId = conversation.id;
   const contactName = otherName(conversation, user.id, post, creatorNames);
+  const postType = post?.post_type || conversation.post_type;
+  const postTitle = post?.title || conversation.post_title;
+  const isPostOwner = post?.created_by_id ? post.created_by_id === user.id : conversation.participant_ids?.[1] === user.id;
+  const suggestedMessages = getSuggestedMessages(postType, postTitle, isPostOwner);
 
   const refresh = useCallback(async () => {
     try {
@@ -233,20 +262,20 @@ function ChatPanel({ conversation, post, creatorNames, user, onRead, mobileVisib
     <header className="flex min-h-[88px] items-center gap-3 border-b border-[#e9eef5] px-5 py-3">
       <button type="button" onClick={() => navigate("/messages")} className="rounded-full p-2 text-[#61738f] hover:bg-blue-50 lg:hidden" aria-label="กลับไปรายการแชท"><ChevronLeft className="h-5 w-5" /></button>
       <Avatar name={contactName} size="h-14 w-14" />
-      <div className="min-w-0 flex-1"><div className="truncate text-lg font-extrabold text-[#101d3a]">{contactName}</div><div className="mt-0.5 text-xs text-[#72839c]">สนทนาเกี่ยวกับ {conversation.post_title || "ประกาศ"}</div></div>
+      <div className="min-w-0 flex-1"><div className="truncate text-lg font-extrabold text-[#101d3a]">{contactName}</div><div className="mt-0.5 truncate text-xs text-[#72839c]">{postType === "FOUND" ? "คุยเรื่องประกาศพบของ" : postType === "LOST" ? "คุยเรื่องประกาศของหาย" : "สนทนาเกี่ยวกับประกาศ"} · {postTitle || "ประกาศ"}</div></div>
       <button type="button" disabled title="โทรศัพท์ยังไม่พร้อมใช้งานในแชท" className="rounded-full p-2 text-[#71829d] disabled:cursor-not-allowed disabled:opacity-40"><Phone className="h-6 w-6" /></button>
       <div className="relative"><button type="button" onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 text-[#71829d] hover:bg-blue-50" aria-label="ตัวเลือกแชท"><MoreVertical className="h-5 w-5" /></button>{menuOpen && <div className="absolute right-0 top-full z-20 w-40 rounded-xl border border-[#dce5f1] bg-white p-1.5 shadow-lg"><Link to={`/post/${conversation.post_id}`} className="block rounded-lg px-3 py-2 text-sm text-[#14213c] hover:bg-blue-50">ดูประกาศ</Link></div>}</div>
     </header>
 
     <Link to={`/post/${conversation.post_id}`} className="mx-4 mt-4 flex items-center gap-4 rounded-2xl border border-[#dce5f1] bg-white p-3 transition hover:border-blue-300 md:mx-5">
       {post?.images?.[0] ? <img src={post.images[0]} alt="" className="h-20 w-24 shrink-0 rounded-xl object-cover" /> : <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500"><ImageIcon className="h-7 w-7" /></div>}
-      <div className="min-w-0 flex-1"><div className="truncate text-base font-bold text-[#112142]">{post?.title || conversation.post_title}</div><div className="mt-1 flex items-center gap-1 truncate text-xs text-[#5e708d]"><MapPin className="h-4 w-4 shrink-0" />{post?.place_name || "ไม่ระบุสถานที่"}</div><div className="mt-1 truncate text-[11px] text-[#8292ac]">{post?.post_type === "LOST" ? "ประกาศของหาย" : post?.post_type === "FOUND" ? "ประกาศพบของ" : "ประกาศที่เกี่ยวข้อง"} · {post?.created_date ? new Date(post.created_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div></div>
-      {post?.post_type && <span className="hidden rounded-full bg-[#e9f3ff] px-3 py-2 text-xs font-semibold text-[#1067dc] sm:inline">{post.post_type === "LOST" ? "ของหาย" : "พบของ"}</span>}<ChevronRight className="h-5 w-5 shrink-0 text-[#71829d]" />
+      <div className="min-w-0 flex-1"><div className="mb-1 text-[11px] font-semibold text-[#2772d9]">{postType === "FOUND" ? "ติดต่อจากประกาศพบของ" : postType === "LOST" ? "ติดต่อจากประกาศของหาย" : "ประกาศที่กำลังสนทนา"}</div><div className="truncate text-base font-bold text-[#112142]">{postTitle || "ประกาศ"}</div><div className="mt-1 flex items-center gap-1 truncate text-xs text-[#5e708d]"><MapPin className="h-4 w-4 shrink-0" />{post?.place_name || "ไม่ระบุสถานที่"}</div><div className="mt-1 truncate text-[11px] text-[#8292ac]">{postType === "LOST" ? "ประกาศของหาย" : postType === "FOUND" ? "ประกาศพบของ" : "ประกาศที่เกี่ยวข้อง"} · {post?.created_date ? new Date(post.created_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div></div>
+      {postType && <span className="hidden rounded-full bg-[#e9f3ff] px-3 py-2 text-xs font-semibold text-[#1067dc] sm:inline">{postType === "LOST" ? "ของหาย" : "พบของ"}</span>}<ChevronRight className="h-5 w-5 shrink-0 text-[#71829d]" />
     </Link>
 
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-5">
       {loading && <div className="mx-auto h-8 w-32 animate-pulse rounded-full bg-slate-100" />}
-      {!loading && messages.length === 0 && <div className="py-12 text-center text-sm text-slate-500">เริ่มสนทนาเกี่ยวกับประกาศนี้ได้เลย</div>}
+      {!loading && messages.length === 0 && <div className="py-5 text-center text-sm text-slate-500">เริ่มสนทนาเกี่ยวกับ{postType === "FOUND" ? "ของที่พบ" : postType === "LOST" ? "ของที่ประกาศหา" : "ประกาศ"}นี้ได้เลย</div>}
       {messages.map((message, index) => {
         const mine = message.sender_id === user.id;
         const previousDay = index ? new Date(messages[index - 1].created_date).toDateString() : null;
@@ -268,12 +297,18 @@ function ChatPanel({ conversation, post, creatorNames, user, onRead, mobileVisib
     </div>
 
     <div className="border-t border-[#e9eef5] bg-white px-4 py-3 md:px-5">
+      {!loading && messages.length === 0 && <div className="mb-3">
+        <p className="mb-2 text-xs font-semibold text-[#536887]">ข้อความแนะนำสำหรับ{postType === "FOUND" ? "ประกาศพบของ" : postType === "LOST" ? "ประกาศของหาย" : "ประกาศนี้"} <span className="font-normal text-[#8392a8]">· เลือกแล้วตรวจทานก่อนกดส่ง</span></p>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {suggestedMessages.map((suggestion) => <button key={suggestion} type="button" onClick={() => { setText(suggestion); messageInput.current?.focus(); }} className="max-w-[260px] shrink-0 rounded-xl border border-[#d5e4f8] bg-[#f5f9ff] px-3 py-2 text-left text-xs leading-5 text-[#23528c] transition hover:border-[#7eb6ff] hover:bg-[#eaf4ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">{suggestion}</button>)}
+        </div>
+      </div>}
       <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={(event) => event.target.files?.[0] && send(event.target.files[0])} />
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => event.target.files?.[0] && send(event.target.files[0])} />
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center rounded-[20px] border border-[#dbe5f1] bg-white px-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
           <button type="button" disabled={sending} onClick={() => fileInput.current?.click()} className="rounded-full p-2.5 text-[#6d819e] hover:bg-blue-50 disabled:opacity-50" aria-label="แนบไฟล์"><Paperclip className="h-5 w-5" /></button>
-          <input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); send(); } }} placeholder="พิมพ์ข้อความ..." className="min-w-0 flex-1 bg-white px-2 py-3.5 text-sm text-[#14213c] outline-none placeholder:text-[#8b9ab0]" />
+          <input ref={messageInput} value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); send(); } }} placeholder="พิมพ์ข้อความ..." className="min-w-0 flex-1 bg-white px-2 py-3.5 text-sm text-[#14213c] outline-none placeholder:text-[#8b9ab0]" />
           <button type="button" disabled={sending} onClick={() => cameraInput.current?.click()} className="rounded-full p-2.5 text-[#6d819e] hover:bg-blue-50 disabled:opacity-50" aria-label="ถ่ายรูปหรือเลือกรูป"><ImageIcon className="h-5 w-5" /></button>
           <button type="button" disabled={sending} onClick={shareLocation} className="rounded-full p-2.5 text-[#6d819e] hover:bg-blue-50 disabled:opacity-50" aria-label="ส่งตำแหน่ง"><MapPin className="h-5 w-5" /></button>
         </div>
