@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { MapContainer, Marker } from "react-leaflet";
 import L from "leaflet";
 import {
   ChevronLeft, MapPin, Clock, Share2, Flag, MessageSquare, HandHeart,
-  Check, X, Shield, Award, MessageCircle, Bookmark
+  Check, X, Shield, Award, MessageCircle, Bookmark, Copy
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -16,7 +16,8 @@ import {
 import { CategoryIcon } from "@/lib/categoryIcons";
 import { cn } from "@/lib/utils";
 import MapTiles from "@/components/MapTiles";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
+import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 const pinIcon = (color) => L.divIcon({
   className: "findit-pin",
@@ -26,6 +27,7 @@ const pinIcon = (color) => L.divIcon({
 
 export default function PostDetail() {
   const { id } = useParams();
+  const shareUrl = `https://www.pobjer.com/post/${encodeURIComponent(id)}`;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState(null);
@@ -36,6 +38,9 @@ export default function PostDetail() {
   const [activeImg, setActiveImg] = useState(0);
   const [showClaim, setShowClaim] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
+  const shareInputRef = useRef(null);
   const [saved, setSaved] = useState(false);
   const [claimForm, setClaimForm] = useState({ lost_location: "", lost_time: "", verification_answer: "", distinguishing_marks: "", proof_image_url: "" });
 
@@ -126,6 +131,29 @@ export default function PostDetail() {
         setSaved(true);
       }
     } catch {}
+  };
+
+  const sharePost = () => {
+    setShareStatus("");
+    setShowShare(true);
+  };
+
+  const copyShareLink = async (forInstagram = false) => {
+    const input = shareInputRef.current;
+    const url = input?.value;
+    if (!url) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        input.select();
+        if (!document.execCommand("copy")) throw new Error("Copy failed");
+      }
+      setShareStatus(forInstagram ? "คัดลอกลิงก์แล้ว เปิด Instagram แล้ววางในแชทหรือสตอรี่ด้วยสติกเกอร์ลิงก์" : "คัดลอกลิงก์แล้ว ส่งให้ผู้อื่นได้เลย");
+    } catch {
+      input.select();
+      setShareStatus("คัดลอกอัตโนมัติไม่ได้ กรุณาคัดลอกลิงก์ที่เลือกไว้");
+    }
   };
 
   const startChat = async () => {
@@ -287,9 +315,26 @@ export default function PostDetail() {
               <button onClick={startChat} className="flex-1 min-w-[120px] px-4 py-3 rounded-full border border-border text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-accent"><MessageSquare className="w-4 h-4" /> ส่งข้อความ</button>
             )}
             <button onClick={toggleSave} className={cn("p-3 rounded-full border", saved ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-accent")}><Bookmark className={cn("w-4 h-4", saved && "fill-current")} /></button>
-            <button onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success("คัดลอกลิงก์แล้ว"); }} className="p-3 rounded-full border border-border hover:bg-accent"><Share2 className="w-4 h-4" /></button>
+            <button type="button" onClick={sharePost} aria-label="แชร์ประกาศ" title="แชร์ประกาศ" className="p-3 rounded-full border border-border hover:bg-accent"><Share2 className="w-4 h-4" /></button>
             {!isDemo && !isOwner && <button onClick={() => setShowReport(true)} className="p-3 rounded-full border border-border hover:bg-accent"><Flag className="w-4 h-4" /></button>}
           </div>
+
+          {showShare && <div role="dialog" aria-modal="true" aria-labelledby="share-dialog-title" className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/50 px-4" onClick={(event) => { if (event.target === event.currentTarget) setShowShare(false); }} onKeyDown={(event) => { if (event.key === "Escape") setShowShare(false); }}>
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between gap-3"><h2 id="share-dialog-title" className="text-lg font-bold">แชร์ประกาศ</h2><button type="button" onClick={() => setShowShare(false)} aria-label="ปิด" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+              <p className="mb-3 text-sm text-slate-600">ส่งลิงก์ประกาศ “{post.title}” ให้คนอื่นช่วยตามหา</p>
+              <div className="mb-5 grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => copyShareLink()} className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-blue-50 text-blue-600"><Copy className="h-5 w-5" /></span>คัดลอกลิงก์</button>
+                <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#1877f2] text-white"><FaFacebookF className="h-5 w-5" /></span>Facebook</a>
+                <button type="button" onClick={() => copyShareLink(true)} className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-3 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"><span className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-violet-600 text-white"><FaInstagram className="h-5 w-5" /></span>Instagram</button>
+              </div>
+              <label htmlFor="share-url" className="mb-2 block text-sm font-semibold">ลิงก์ประกาศ</label>
+              <input id="share-url" ref={shareInputRef} readOnly onFocus={(event) => event.target.select()} value={shareUrl} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-500" />
+              {shareStatus && <p role="status" className="mt-3 text-sm text-slate-600">{shareStatus}</p>}
+              <p className="mt-3 text-xs leading-5 text-slate-500">Facebook จะแสดงลิงก์เป็นตัวอย่างประกาศ ไม่ได้เติมลิงก์ในช่องเขียนข้อความ หากตัวอย่างไม่ขึ้น ให้คัดลอกลิงก์ด้านบนไปวางในโพสต์เอง</p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">Instagram ไม่รองรับการโพสต์ลิงก์จากเว็บไซต์โดยตรง หลังคัดลอกแล้ว <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:text-blue-700">เปิด Instagram</a> เพื่อวางลิงก์เอง</p>
+            </div>
+          </div>}
 
           {isOwner && (post.status === "ARRANGING_RETURN" || post.status === "CLAIM_REQUESTED") && (
             <button onClick={startChat} className="w-full mt-3 px-4 py-3 rounded-full bg-found text-white text-sm font-semibold flex items-center justify-center gap-1.5"><MessageCircle className="w-4 h-4" /> ไปที่แชทเพื่อยืนยันการส่งคืน</button>
