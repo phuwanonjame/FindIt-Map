@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 import { getChatFileUrl, uploadChatFile, validateChatFile } from "@/lib/chatAttachments";
 import MessagesGuest from "@/pages/MessagesGuest";
+import ReturnHandoverPanel from "@/components/ReturnHandoverPanel";
 
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "";
 const formatDay = (value) => {
@@ -272,6 +273,7 @@ function ChatPanel({ conversation, post, creatorNames, user, onRead, mobileVisib
       <div className="min-w-0 flex-1"><div className="mb-1 text-[11px] font-semibold text-[#2772d9]">{postType === "FOUND" ? "ติดต่อจากประกาศพบของ" : postType === "LOST" ? "ติดต่อจากประกาศของหาย" : "ประกาศที่กำลังสนทนา"}</div><div className="truncate text-base font-bold text-[#112142]">{postTitle || "ประกาศ"}</div><div className="mt-1 flex items-center gap-1 truncate text-xs text-[#5e708d]"><MapPin className="h-4 w-4 shrink-0" />{post?.place_name || "ไม่ระบุสถานที่"}</div><div className="mt-1 truncate text-[11px] text-[#8292ac]">{postType === "LOST" ? "ประกาศของหาย" : postType === "FOUND" ? "ประกาศพบของ" : "ประกาศที่เกี่ยวข้อง"} · {post?.created_date ? new Date(post.created_date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }) : ""}</div></div>
       {postType && <span className="hidden rounded-full bg-[#e9f3ff] px-3 py-2 text-xs font-semibold text-[#1067dc] sm:inline">{postType === "LOST" ? "ของหาย" : "พบของ"}</span>}<ChevronRight className="h-5 w-5 shrink-0 text-[#71829d]" />
     </Link>
+    <ReturnHandoverPanel conversation={conversation} post={post} user={user} onChanged={onRead} />
 
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-5">
       {loading && <div className="mx-auto h-8 w-32 animate-pulse rounded-full bg-slate-100" />}

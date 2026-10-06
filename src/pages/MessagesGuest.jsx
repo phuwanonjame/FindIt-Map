@@ -1,8 +1,10 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { LogIn, MessageCircle, PawPrint, Send, UserRoundPlus } from "lucide-react";
 
 export default function MessagesGuest() {
+  const location = useLocation();
+  const loginPath = `/login?next=${encodeURIComponent(location.pathname)}`;
   return (
     <section className="relative isolate flex min-h-[calc(100dvh-68px)] flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,#ffffff_0%,#f5f9ff_55%,#eaf3ff_100%)] px-4 py-10 text-[#0c1e45] sm:px-6 sm:py-14">
       <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-[#dceaff]/45 sm:h-80 sm:w-80" />
@@ -24,7 +26,7 @@ export default function MessagesGuest() {
             คุณสามารถพูดคุยกับผู้ที่พบของ หรือเจ้าของของที่คุณพบ<br className="hidden sm:block" /> เพื่อประสานการส่งคืนได้อย่างสะดวกและปลอดภัย
           </p>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Link to="/login" className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#2863ea] px-8 text-base font-semibold text-white shadow-[0_7px_16px_rgba(40,99,234,0.15)] transition hover:bg-[#1955da] sm:w-auto">
+            <Link to={loginPath} className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#2863ea] px-8 text-base font-semibold text-white shadow-[0_7px_16px_rgba(40,99,234,0.15)] transition hover:bg-[#1955da] sm:w-auto">
               <LogIn className="h-5 w-5" /> เข้าสู่ระบบ
             </Link>
             <Link to="/register" className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-[#b9c9e1] bg-white px-7 text-base font-semibold text-[#142b54] transition hover:bg-blue-50 sm:w-auto">

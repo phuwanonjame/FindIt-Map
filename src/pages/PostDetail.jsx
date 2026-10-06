@@ -113,15 +113,6 @@ export default function PostDetail() {
     } catch { toast.error("ปฏิเสธไม่สำเร็จ"); }
   };
 
-  const confirmReturn = async () => {
-    try {
-      await base44.entities.Post.update(id, { status: "RETURNED", returned_at: new Date().toISOString(), closed_at: new Date().toISOString() });
-      await base44.entities.PostEvent.create({ post_id: id, event_type: "RETURNED", user_id: user.id, user_name: user.full_name, description: "ส่งคืนสำเร็จ" });
-      toast.success("ยืนยันส่งคืนสำเร็จ");
-      load();
-    } catch { toast.error("ยืนยันไม่สำเร็จ"); }
-  };
-
   const toggleSave = async () => {
     if (!user) { navigate("/login"); return; }
     try {
@@ -138,9 +129,15 @@ export default function PostDetail() {
 
   const startChat = async () => {
     if (!user) { navigate("/login"); return; }
-    if (isOwner) return;
     try {
       const existing = await base44.entities.Conversation.filter({ post_id: id });
+      if (isOwner) {
+        const matched = acceptedClaim
+          ? existing.find((conversation) => conversation.participant_ids?.includes(acceptedClaim.claimant_user_id))
+          : existing.length === 1 ? existing[0] : null;
+        navigate(matched ? `/messages/${matched.id}` : "/messages");
+        return;
+      }
       const mine = existing.find((c) => c.participant_ids?.includes(user.id));
       if (mine) { navigate(`/messages/${mine.id}`); return; }
       const authorName = post.created_by_name || events.find((event) => event.event_type === "POST_CREATED" && event.user_id === post.created_by_id)?.user_name || (post.post_type === "FOUND" ? "ผู้พบของ" : "ผู้แจ้งของหาย");
@@ -294,7 +291,7 @@ export default function PostDetail() {
           </div>
 
           {isOwner && (post.status === "ARRANGING_RETURN" || post.status === "CLAIM_REQUESTED") && (
-            <button onClick={confirmReturn} className="w-full mt-3 px-4 py-3 rounded-full bg-found text-white text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> ยืนยันส่งคืนสำเร็จ</button>
+            <button onClick={startChat} className="w-full mt-3 px-4 py-3 rounded-full bg-found text-white text-sm font-semibold flex items-center justify-center gap-1.5"><MessageCircle className="w-4 h-4" /> ไปที่แชทเพื่อยืนยันการส่งคืน</button>
           )}
 
           {/* Contact card after accepted claim */}

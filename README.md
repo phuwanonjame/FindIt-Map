@@ -80,6 +80,8 @@ This is a static Vite site, so Cloudflare Pages serves it from its CDN without a
 2. Copy `.env.example` to `.env.local` and fill `VITE_SUPABASE_URL` plus `VITE_SUPABASE_PUBLISHABLE_KEY` from the project Connect dialog. Never use the service-role key in the browser.
 3. In Supabase Auth, enable Email provider. The registration screen expects an email OTP; configure email confirmation / OTP delivery in Auth settings. For Google sign-in, enable Google and add your local and production callback URLs.
 
+For two-party return confirmation, run [supabase/return-handover-setup.sql](supabase/return-handover-setup.sql) after the chat scripts. A finder marks an item handed over in its chat; only the recipient can confirm receipt and close the listing. To enable confirmation and reminder emails, follow [supabase/RETURN-HANDOVER.md](supabase/RETURN-HANDOVER.md). The in-app confirmation and notifications work without email credentials once the SQL is applied.
+
 The app stores users through Supabase Auth, records in Postgres, and uploaded files in Supabase Storage. Post images are public; chat attachments use a separate private bucket with participant-only access. Never put the Supabase secret key in Vite environment variables.
 
 This project now runs as a normal Vite + React app and does not require Base44, Deno, a Base44 login, or a remote backend.

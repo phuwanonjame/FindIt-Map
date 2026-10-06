@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail } from "lucide-react";
 import { base44 as appClient } from "@/api/supabaseAdapter";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -7,6 +7,9 @@ import GoogleIcon from "@/components/GoogleIcon";
 const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-white px-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 export default function Login() {
+  const location = useLocation();
+  const requestedNext = new URLSearchParams(location.search).get("next");
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,7 +20,8 @@ export default function Login() {
     setError(""); setLoading(true);
     try {
       await appClient.auth.loginViaEmailPassword(email, password);
-      window.location.assign("/");
+      window.sessionStorage.removeItem("pobjer:auth-next");
+      window.location.assign(nextPath);
     } catch (err) {
       setError(err.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       setLoading(false);
@@ -26,8 +30,11 @@ export default function Login() {
 
   const signInGoogle = async () => {
     setError(""); setLoading(true);
-    try { await appClient.auth.loginWithProvider("google", window.location.origin); }
-    catch (err) { setError(err.message || "ไม่สามารถเข้าสู่ระบบด้วย Google ได้"); setLoading(false); }
+    try {
+      if (nextPath !== "/") window.sessionStorage.setItem("pobjer:auth-next", nextPath);
+      await appClient.auth.loginWithProvider("google", window.location.origin);
+    }
+    catch (err) { window.sessionStorage.removeItem("pobjer:auth-next"); setError(err.message || "ไม่สามารถเข้าสู่ระบบด้วย Google ได้"); setLoading(false); }
   };
 
   return (

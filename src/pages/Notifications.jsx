@@ -50,7 +50,7 @@ export default function Notifications() {
       ) : (
         <div className="space-y-2">
           {notifs.map((n) => (
-            <Link key={n.id} to={n.type === "MESSAGE" ? `/messages/${n.conversation_id || n.reference_id}` : n.reference_id ? `/post/${n.reference_id}` : "#"} onClick={() => markRead(n)} className={cn("w-full text-left flex gap-3 p-3 rounded-2xl border transition", n.read_at ? "bg-card border-border" : "bg-primary/5 border-primary/20")}>
+            <Link key={n.id} to={n.type === "MESSAGE" || n.type === "RETURN_HANDOVER" ? `/messages/${n.conversation_id || n.reference_id}` : n.reference_id ? `/post/${n.reference_id}` : "#"} onClick={() => markRead(n)} className={cn("w-full text-left flex gap-3 p-3 rounded-2xl border transition", n.read_at ? "bg-card border-border" : "bg-primary/5 border-primary/20")}>
               <div className={cn("w-2 h-2 rounded-full mt-2 shrink-0", n.read_at ? "bg-transparent" : "bg-primary")} />
               <div className="flex-1">
                 <div className="font-semibold text-sm">{n.title}</div>
