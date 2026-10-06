@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Check, CheckCheck, ChevronLeft, ChevronRight, CirclePlus, Clock3, FileText, Image as ImageIcon, MapPin, MessageSquare, MoreVertical, Paperclip, Phone, Search, Send } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, ChevronRight, CirclePlus, Clock3, FileText, Image as ImageIcon, MapPin, MoreVertical, Paperclip, Phone, Search, Send } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { base44 } from "@/api/base44Client";
 import { requireSupabase } from "@/api/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { cn } from "@/lib/utils";
 import { getChatFileUrl, uploadChatFile, validateChatFile } from "@/lib/chatAttachments";
+import MessagesGuest from "@/pages/MessagesGuest";
 
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "";
 const formatDay = (value) => {
@@ -354,7 +355,7 @@ export default function Messenger() {
     if (desktop && !id && conversations[0]) navigate(`/messages/${conversations[0].id}`, { replace: true });
   }, [desktop, id, conversations, navigate]);
 
-  if (!user) return <div className="mx-auto max-w-md px-4 py-16 text-center"><MessageSquare className="mx-auto mb-3 h-12 w-12 text-slate-400" /><p className="text-slate-600">เข้าสู่ระบบเพื่อใช้ข้อความ</p><Link to="/login" className="font-semibold text-blue-600">เข้าสู่ระบบ</Link></div>;
+  if (!user) return <MessagesGuest />;
 
   const selectedId = id || (desktop ? conversations[0]?.id : null);
   const selected = conversations.find((conversation) => conversation.id === selectedId);
