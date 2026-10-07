@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -27,14 +27,15 @@ import ResetPassword from '@/pages/ResetPassword';
 const AuthenticatedApp = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (isLoadingAuth || !user) return;
+    if (isLoadingAuth || !user || location.pathname === "/reset-password") return;
     const nextPath = window.sessionStorage.getItem("pobjer:auth-next");
     if (!nextPath) return;
     window.sessionStorage.removeItem("pobjer:auth-next");
     if (nextPath.startsWith("/") && !nextPath.startsWith("//")) navigate(nextPath, { replace: true });
-  }, [isLoadingAuth, user, navigate]);
+  }, [isLoadingAuth, user, navigate, location.pathname]);
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (

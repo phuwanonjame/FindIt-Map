@@ -71,7 +71,14 @@ const auth = {
   setToken() {},
   async logout() { const { error } = await requireSupabase().auth.signOut(); fail(error); },
   redirectToLogin() { window.location.assign("/login"); },
-  async resetPasswordRequest(email) { const { error } = await requireSupabase().auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); fail(error); },
+  async resetPasswordRequest(email) {
+    const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const origin = isLocal ? window.location.origin : "https://www.pobjer.com";
+    const { error } = await requireSupabase().auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/reset-password`,
+    });
+    fail(error);
+  },
   async resetPassword({ newPassword }) { const { error } = await requireSupabase().auth.updateUser({ password: newPassword }); fail(error); },
 };
 
