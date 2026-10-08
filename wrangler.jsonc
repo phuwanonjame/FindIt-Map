@@ -2,8 +2,11 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "findit-map",
   "compatibility_date": "2026-10-01",
+  "main": "./worker/seo.js",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/post/*", "/search", "/map", "/sitemap.xml", "/login", "/register", "/forgot-password", "/reset-password", "/profile", "/messages*", "/notifications", "/admin"]
   }
 }

@@ -95,4 +95,24 @@ Open the URL printed by Vite (normally `http://localhost:5173`). The local front
 
 Build a production bundle with `npm run build`.
 
+## Search indexing (Cloudflare Workers)
+
+The Vite build emits `seo-public-config.json` from the existing `VITE_SUPABASE_URL`
+and `VITE_SUPABASE_PUBLISHABLE_KEY` build variables. It contains only the public
+key already used by the browser; never use a Supabase secret/service-role key.
+The Cloudflare Worker in `worker/seo.js` serves listing-specific HTML for
+`/post/<id>`, unique metadata for `/search` and `/map`, and a live sitemap at
+`https://www.pobjer.com/sitemap.xml`. Closed listings are omitted from the
+sitemap and marked `noindex`. Account, message, and create-post routes are
+also marked `noindex`. `public/robots.txt` points crawlers at the sitemap.
+
+After deployment, verify `https://www.pobjer.com/robots.txt`, the sitemap,
+and a real listing URL using Google Search Console's URL Inspection. Verify
+ownership of `www.pobjer.com` in Search Console and submit `sitemap.xml`.
+Indexing and rankings are decided by search engines and are not guaranteed.
+The sitemap currently includes the latest 1,000 public listing records.
+
+Run `node --test tests/seo-worker.test.js` after `npm run build` to check the
+Worker's metadata, sitemap, and private-page indexing rules.
+
 ---
