@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, KeyRound, Loader2, LockKeyhole, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import { base44 as appClient } from "@/api/supabaseAdapter";
 import GoogleIcon from "@/components/GoogleIcon";
+import TurnstileChallenge, { turnstileSiteKey } from "@/components/TurnstileChallenge";
 
 const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-white px-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
@@ -21,23 +22,26 @@ export default function RegisterNew() {
   const [verifyMode, setVerifyMode] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const register = async (event) => {
     event.preventDefault(); setError("");
+    if (turnstileSiteKey && !captchaToken) return setError("กรุณายืนยันความปลอดภัยก่อนสมัครสมาชิก");
     if (password !== confirmPassword) return setError("รหัสผ่านทั้งสองช่องไม่ตรงกัน");
     if (password.length < 6) return setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
     setLoading(true);
     try {
-      const result = await appClient.auth.register({ email, password });
+      const result = await appClient.auth.register({ email, password, captchaToken: captchaToken || undefined });
       // Supabase returns a session immediately when email confirmation is off.
       // In that mode there is no OTP email to wait for.
       if (result.session) {
         window.sessionStorage.removeItem("pobjer:auth-next");
         window.location.assign(nextPath);
       }
-      else setVerifyMode(true);
+      else { setCaptchaToken(""); setVerifyMode(true); }
     }
-    catch (err) { setError(err.message || "ไม่สามารถสร้างบัญชีได้"); }
+    catch (err) { setError(err.message || "ไม่สามารถสร้างบัญชีได้"); setCaptchaToken(""); setCaptchaResetKey((value) => value + 1); }
     finally { setLoading(false); }
   };
   const verify = async (event) => {
@@ -53,7 +57,12 @@ export default function RegisterNew() {
     }
     catch (err) { window.sessionStorage.removeItem("pobjer:auth-next"); setError(err.message || "ไม่สามารถสมัครด้วย Google ได้"); setLoading(false); }
   };
-  const resend = async () => { try { await appClient.auth.resendOtp(email); } catch (err) { setError(err.message || "ไม่สามารถส่งรหัสใหม่ได้"); } };
+  const resend = async () => {
+    if (turnstileSiteKey && !captchaToken) return setError("กรุณายืนยันความปลอดภัยก่อนส่งรหัสใหม่");
+    try { await appClient.auth.resendOtp(email, captchaToken || undefined); }
+    catch (err) { setError(err.message || "ไม่สามารถส่งรหัสใหม่ได้"); }
+    finally { setCaptchaToken(""); setCaptchaResetKey((value) => value + 1); }
+  };
 
   const heading = verifyMode ? "ยืนยันอีเมล" : "สร้างบัญชีใหม่";
   const subheading = verifyMode ? "ตรวจอีเมลของคุณ หากได้รับรหัสยืนยันให้กรอกด้านล่าง" : "เริ่มแจ้งประกาศและช่วยให้สิ่งสำคัญกลับคืนสู่เจ้าของ";
@@ -63,7 +72,7 @@ export default function RegisterNew() {
         <p>หาก <span className="font-semibold text-slate-900">{email}</span> ยังไม่เคยสมัคร เราจะส่งรหัสยืนยันให้ทางอีเมล</p>
         <p className="mt-2">หากเคยมีบัญชีแล้ว ให้เข้าสู่ระบบหรือใช้ “ลืมรหัสผ่าน” เพื่อเข้าใช้งาน</p>
       </div>
-      <form onSubmit={verify} className="space-y-5"><label className="block"><span className="mb-2 block text-sm font-semibold">รหัสยืนยัน 8 หลัก</span><span className="relative block"><KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass + " tracking-[.35em]"} type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="8" autoFocus placeholder="12345678" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} required /></span></label><button type="submit" disabled={loading || otp.length !== 8} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}{loading ? "กำลังยืนยัน" : "ยืนยันอีเมล"}</button><p className="text-center text-sm text-slate-500">ไม่ได้รับรหัส? <button type="button" onClick={resend} className="font-semibold text-blue-600 hover:text-blue-700">ส่งอีกครั้ง</button></p></form>
+      <form onSubmit={verify} className="space-y-5"><TurnstileChallenge onToken={setCaptchaToken} resetKey={captchaResetKey} /><label className="block"><span className="mb-2 block text-sm font-semibold">รหัสยืนยัน 8 หลัก</span><span className="relative block"><KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass + " tracking-[.35em]"} type="text" inputMode="numeric" autoComplete="one-time-code" maxLength="8" autoFocus placeholder="12345678" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} required /></span></label><button type="submit" disabled={loading || otp.length !== 8} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}{loading ? "กำลังยืนยัน" : "ยืนยันอีเมล"}</button><p className="text-center text-sm text-slate-500">ไม่ได้รับรหัส? <button type="button" onClick={resend} className="font-semibold text-blue-600 hover:text-blue-700">ส่งอีกครั้ง</button></p></form>
       <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-semibold"><Link to="/login" state={{ email }} className="text-blue-600 hover:text-blue-700">เข้าสู่ระบบ</Link><Link to="/forgot-password" state={{ email }} className="text-blue-600 hover:text-blue-700">ลืมรหัสผ่าน</Link></div>
-    </> : <><form onSubmit={register} className="space-y-5"><label className="block"><span className="mb-2 block text-sm font-semibold">อีเมล</span><span className="relative block"><Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="email" autoComplete="email" autoFocus placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></span></label><label className="block"><span className="mb-2 block text-sm font-semibold">รหัสผ่าน</span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร" value={password} onChange={(event) => setPassword(event.target.value)} required /></span></label><label className="block"><span className="mb-2 block text-sm font-semibold">ยืนยันรหัสผ่าน</span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="new-password" placeholder="พิมพ์รหัสผ่านอีกครั้ง" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></span></label><button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}{loading ? "กำลังสร้างบัญชี" : "สร้างบัญชี"}</button></form><div className="my-7 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />หรือ<span className="h-px flex-1 bg-slate-200" /></div><button type="button" onClick={google} disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"><GoogleIcon className="h-5 w-5" />สมัครด้วย Google</button><p className="mt-8 text-center text-sm text-slate-500">มีบัญชีอยู่แล้ว? <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">เข้าสู่ระบบ</Link></p></>}</section></main></div>;
+    </> : <><form onSubmit={register} className="space-y-5"><label className="block"><span className="mb-2 block text-sm font-semibold">อีเมล</span><span className="relative block"><Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="email" autoComplete="email" autoFocus placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></span></label><label className="block"><span className="mb-2 block text-sm font-semibold">รหัสผ่าน</span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร" value={password} onChange={(event) => setPassword(event.target.value)} required /></span></label><label className="block"><span className="mb-2 block text-sm font-semibold">ยืนยันรหัสผ่าน</span><span className="relative block"><LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="password" autoComplete="new-password" placeholder="พิมพ์รหัสผ่านอีกครั้ง" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></span></label><TurnstileChallenge onToken={setCaptchaToken} resetKey={captchaResetKey} /><button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}{loading ? "กำลังสร้างบัญชี" : "สร้างบัญชี"}</button></form><div className="my-7 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />หรือ<span className="h-px flex-1 bg-slate-200" /></div><button type="button" onClick={google} disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"><GoogleIcon className="h-5 w-5" />สมัครด้วย Google</button><p className="mt-8 text-center text-sm text-slate-500">มีบัญชีอยู่แล้ว? <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-700">เข้าสู่ระบบ</Link></p></>}</section></main></div>;
 }

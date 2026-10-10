@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { base44 as appClient } from "@/api/supabaseAdapter";
 import { Mail, ArrowLeft, Loader2, Send } from "lucide-react";
+import TurnstileChallenge, { turnstileSiteKey } from "@/components/TurnstileChallenge";
 
 const fieldClass = "h-12 w-full rounded-xl border border-slate-200 bg-white px-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
@@ -10,12 +11,19 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState(() => location.state?.email || "");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (turnstileSiteKey && !captchaToken) {
+      setCaptchaError("กรุณายืนยันความปลอดภัยก่อนส่งคำขอ");
+      return;
+    }
+    setCaptchaError("");
     setLoading(true);
     try {
-      await appClient.auth.resetPasswordRequest(email);
+      await appClient.auth.resetPasswordRequest(email, captchaToken || undefined);
     } catch {
       // Always show success regardless
     } finally {
@@ -56,10 +64,12 @@ export default function ForgotPassword() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+              {captchaError && <p role="alert" className="text-sm text-red-600">{captchaError}</p>}
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold">อีเมล</span>
                 <span className="relative block"><Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="email" autoComplete="email" autoFocus placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></span>
               </label>
+              <TurnstileChallenge onToken={setCaptchaToken} />
               <button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{loading ? "กำลังส่งลิงก์" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>
             </form>
           )}

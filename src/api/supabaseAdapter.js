@@ -63,19 +63,19 @@ const auth = {
     }
     return userFromAuth(data.session.user);
   },
-  async register({ email, password, ...profile }) { const { data, error } = await requireSupabase().auth.signUp({ email, password, options: { data: profile } }); fail(error); return data; },
+  async register({ email, password, captchaToken, ...profile }) { const { data, error } = await requireSupabase().auth.signUp({ email, password, options: { data: profile, captchaToken } }); fail(error); return data; },
   async verifyOtp({ email, otpCode }) { const { data, error } = await requireSupabase().auth.verifyOtp({ email, token: otpCode, type: "email" }); fail(error); window.dispatchEvent(new Event("findme:auth-changed")); return { access_token: data.session?.access_token, user: userFromAuth(data.user) }; },
-  async resendOtp(email) { const { error } = await requireSupabase().auth.resend({ type: "signup", email }); fail(error); },
-  async loginViaEmailPassword(email, password) { const { data, error } = await requireSupabase().auth.signInWithPassword({ email, password }); fail(error); window.dispatchEvent(new Event("findme:auth-changed")); return userFromAuth(data.user); },
+  async resendOtp(email, captchaToken) { const { error } = await requireSupabase().auth.resend({ type: "signup", email, options: { captchaToken } }); fail(error); },
+  async loginViaEmailPassword(email, password, captchaToken) { const { data, error } = await requireSupabase().auth.signInWithPassword({ email, password, options: { captchaToken } }); fail(error); window.dispatchEvent(new Event("findme:auth-changed")); return userFromAuth(data.user); },
   async loginWithProvider(provider, redirectTo = window.location.origin) { const { error } = await requireSupabase().auth.signInWithOAuth({ provider, options: { redirectTo } }); fail(error); },
   setToken() {},
   async logout() { const { error } = await requireSupabase().auth.signOut(); fail(error); },
   redirectToLogin() { window.location.assign("/login"); },
-  async resetPasswordRequest(email) {
+  async resetPasswordRequest(email, captchaToken) {
     const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
     const origin = isLocal ? window.location.origin : "https://www.pobjer.com";
     const { error } = await requireSupabase().auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/reset-password`,
+      redirectTo: `${origin}/reset-password`, captchaToken,
     });
     fail(error);
   },
@@ -89,7 +89,14 @@ export const base44 = {
   entities: Object.fromEntries(EntityNames.map((name) => [name, entity(name)])),
   integrations: { Core: { async UploadPrivateFile({ file }) {
     const client = requireSupabase();
-    const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const allowedTypes = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+    if (!file || !allowedTypes[file.type] || file.size > 10 * 1024 * 1024) {
+      throw new Error("รองรับเฉพาะรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 10 MB");
+    }
+    const { data: authData, error: authError } = await client.auth.getUser();
+    fail(authError);
+    if (!authData.user) throw new Error("กรุณาเข้าสู่ระบบก่อนอัปโหลดรูป");
+    const path = `${authData.user.id}/${crypto.randomUUID()}.${allowedTypes[file.type]}`;
     const { error } = await client.storage.from("post-images").upload(path, file, { contentType: file.type, upsert: false }); fail(error);
     return { file_uri: client.storage.from("post-images").getPublicUrl(path).data.publicUrl };
   } } },
