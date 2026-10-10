@@ -70,7 +70,7 @@ export default function ForgotPassword() {
                 <span className="relative block"><Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input className={fieldClass} type="email" autoComplete="email" autoFocus placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></span>
               </label>
               <TurnstileChallenge onToken={setCaptchaToken} />
-              <button type="submit" disabled={loading} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{loading ? "กำลังส่งลิงก์" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>
+              <button type="submit" disabled={loading || (Boolean(turnstileSiteKey) && !captchaToken)} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#10213d] px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{loading ? "กำลังส่งลิงก์" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>
             </form>
           )}
           <p className="mt-8 text-center text-sm text-slate-500">จำรหัสผ่านได้แล้ว? <Link to="/login" state={{ email }} className="font-semibold text-blue-600 hover:text-blue-700">เข้าสู่ระบบ</Link></p>
