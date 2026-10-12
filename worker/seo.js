@@ -1,4 +1,5 @@
 const SITE = "https://www.pobjer.com";
+const DEFAULT_IMAGE = `${SITE}/pobjer-og-share.png`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -19,6 +20,8 @@ const safeImage = (value) => {
   }
 };
 
+const jsonLd = (id, value) => `<script id="${id}" type="application/ld+json">${JSON.stringify(value).replace(/[<>&]/g, (character) => ({ "<": "\\u003c", ">": "\\u003e", "&": "\\u0026" })[character])}</script>`;
+
 function setMeta(html, { title, description, url, image, type = "website", robots = "index,follow" }) {
   const meta = (name, content, property = false) => `<meta ${property ? "property" : "name"}="${name}" content="${escapeHtml(content)}" />`;
   const replacements = [
@@ -31,16 +34,18 @@ function setMeta(html, { title, description, url, image, type = "website", robot
   let output = html;
   for (const [pattern, replacement] of replacements) output = output.replace(pattern, replacement);
   output = output.replace(/<link rel="canonical"[^>]*>/i, "");
-  output = output.replace(/<meta (?:name="robots"|property="og:url"|property="og:image"|name="twitter:card"|name="twitter:title"|name="twitter:description"|name="twitter:image")[^>]*>/gi, "");
+  output = output.replace(/<meta (?:name="robots"|property="og:url"|property="og:image(?:\:width|\:height)?"|name="twitter:card"|name="twitter:title"|name="twitter:description"|name="twitter:image")[^>]*>/gi, "");
+  output = output.replace(/<script id="pobjer-website-jsonld"[^>]*>[\s\S]*?<\/script>/i, "");
   const tags = [
     `<link rel="canonical" href="${escapeHtml(url)}" />`,
     meta("robots", robots),
     meta("og:url", url, true),
-    meta("og:image", image || `${SITE}/pobjer-icon.png`, true),
+    meta("og:image", image || DEFAULT_IMAGE, true),
+    ...(!image ? [meta("og:image:width", "1200", true), meta("og:image:height", "630", true)] : []),
     meta("twitter:card", "summary_large_image"),
     meta("twitter:title", title),
     meta("twitter:description", description),
-    meta("twitter:image", image || `${SITE}/pobjer-icon.png`),
+    meta("twitter:image", image || DEFAULT_IMAGE),
   ];
   return output.replace("</head>", `${tags.join("\n    ")}\n  </head>`);
 }
@@ -103,6 +108,22 @@ async function postPage(request, env, id) {
   const image = safeImage(post.images?.[0]);
   const url = `${SITE}/post/${id}`;
   let html = setMeta(await appHtml(request, env), { title, description, image, url, type: "article", robots: post.status === "CLOSED" ? "noindex,follow" : "index,follow" });
+  const thing = { "@type": "Thing", name, description: details || name };
+  if (image) thing.image = image;
+  const listingSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemPage",
+    "@id": `${url}#webpage`,
+    url,
+    name: title,
+    description,
+    inLanguage: "th",
+    isPartOf: { "@id": `${SITE}/#website` },
+    datePublished: row.created_at,
+    dateModified: row.updated_at,
+    mainEntity: thing,
+  };
+  html = html.replace("</head>", `    ${jsonLd("pobjer-post-jsonld", listingSchema)}\n  </head>`);
   const body = `<main lang="th" style="max-width:760px;margin:3rem auto;padding:1rem;font-family:Arial,sans-serif"><p>${escapeHtml(label)}${place ? ` · ${escapeHtml(place)}` : ""}</p><h1>${escapeHtml(name)}</h1>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" style="max-width:100%;height:auto" />` : ""}<p>${escapeHtml(plainText(post.description, 3000))}</p><p><a href="/search">ดูประกาศอื่นบน PobJer</a></p></main>`;
   html = html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
   return htmlResponse(html, 200, post.status === "CLOSED" ? { "X-Robots-Tag": "noindex" } : {});

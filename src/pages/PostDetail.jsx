@@ -73,6 +73,43 @@ export default function PostDetail() {
 
   useEffect(() => { load(); }, [id]);
 
+  useEffect(() => {
+    if (!post || post.id !== id) return;
+    const label = post.post_type === "FOUND" ? "พบของ" : "ของหาย";
+    const name = String(post.title || "ประกาศ").trim().slice(0, 100);
+    const place = String(post.place_name || "").trim().slice(0, 100);
+    const details = String(post.description || "").replace(/\s+/g, " ").trim().slice(0, 180);
+    const title = `${label}: ${name}${place ? ` ที่${place}` : ""} | PobJer`;
+    const url = `https://www.pobjer.com/post/${encodeURIComponent(id)}`;
+    document.title = title;
+
+    const thing = { "@type": "Thing", name, description: details || name };
+    const image = post.images?.[0];
+    if (typeof image === "string" && image.startsWith("https://")) thing.image = image;
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "ItemPage",
+      "@id": `${url}#webpage`,
+      url,
+      name: title,
+      description: `${label} ${name}${place ? ` บริเวณ${place}` : ""}${details ? ` — ${details}` : " ดูรายละเอียดและติดต่อผ่าน PobJer"}`,
+      inLanguage: "th",
+      isPartOf: { "@id": "https://www.pobjer.com/#website" },
+      datePublished: post.created_date,
+      dateModified: post.updated_date,
+      mainEntity: thing,
+    };
+    let script = document.getElementById("pobjer-post-jsonld");
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "pobjer-post-jsonld";
+      script.type = "application/ld+json";
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(schema).replace(/[<>&]/g, (character) => ({ "<": "\\u003c", ">": "\\u003e", "&": "\\u0026" })[character]);
+    return () => script.remove();
+  }, [id, post]);
+
   const isOwner = user && post?.created_by_id === user.id;
   const isFound = post?.post_type === "FOUND";
   const cat = post ? CATEGORY_MAP[post.category] : null;
